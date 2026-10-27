@@ -18,9 +18,8 @@ suspend fun main() {
         }
 
     println("${forecast.location.name}: temperature over the next 24 h (p10 to p90)")
-    for (hour in forecast.forecast.timeseries
-        .orEmpty()
-        .take(25)) {
+    val hours = forecast.forecast.timeseries.orEmpty()
+    for (hour in hours.take(25)) {
         val range = hour.ensemble.temperature.p10ToP90 ?: continue
         println("  ${hour.validTime}  ${range.low} to ${range.high} ${forecast.units.temperatureLabel}")
     }

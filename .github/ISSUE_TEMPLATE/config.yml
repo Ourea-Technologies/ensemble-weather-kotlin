@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: BSD-2-Clause
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and show and tell
+    url: https://github.com/Ourea-Technologies/ensemble-weather-kotlin/discussions
+    about: Ask how to do something, or share what you built, in GitHub Discussions.
+  - name: Documentation
+    url: https://docs.oureawx.com/kotlin
+    about: Guides, concepts and this SDK's reference.
+  - name: Report a security vulnerability
+    url: https://github.com/Ourea-Technologies/ensemble-weather-kotlin/security/advisories/new
+    about: Privately, never in a public issue (see SECURITY.md).

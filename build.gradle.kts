@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: BSD-2-Clause
 import com.github.spotbugs.snom.Confidence
 import com.github.spotbugs.snom.Effort
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.KotlinJvm
+import com.vanniktech.maven.publish.SourcesJar
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 buildscript {
@@ -140,6 +143,10 @@ dokka {
 }
 
 mavenPublishing {
+    // The javadoc jar holds the Dokka HTML reference (javadoc.io renders it).
+    configure(
+        KotlinJvm(javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml"), sourcesJar = SourcesJar.Sources()),
+    )
     publishToMavenCentral(automaticRelease = false)
     signAllPublications()
     coordinates("com.oureawx", "ensemble-weather-kotlin", version.toString())
@@ -215,6 +222,9 @@ val checkDependencies =
     }
 
 tasks.check { dependsOn(checkDependencies) }
+
+// `assemble` builds everything Maven Central gets: the jar, the sources jar and the Dokka javadoc jar.
+tasks.assemble { dependsOn("dokkaJavadocJar", "generatePomFileForMavenPublication") }
 
 tasks.register("runExamples") {
     description = "Runs every example in examples/ against the local mock API."

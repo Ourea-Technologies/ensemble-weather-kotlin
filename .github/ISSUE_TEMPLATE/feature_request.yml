@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: BSD-2-Clause
+name: Feature request
+description: Something the Kotlin SDK (or the API) should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Describe the problem first: it helps us find the smallest
+        change that solves it. Questions are welcome in Discussions instead.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: The API you would like
+      description: How would it look in Kotlin? A short snippet is ideal.
+      render: kotlin
+  - type: dropdown
+    id: server
+    attributes:
+      label: Does it need the API to answer something new?
+      description: The server computes every probability and total, so new numbers usually need an API change (we may move those to ensemble-weather-spec).
+      options:
+        - "No: the SDK alone can do it"
+        - "Yes: it needs a server or spec change"
+        - "Not sure"
+    validations:
+      required: true

@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: BSD-2-Clause
+name: Documentation
+description: A wrong, unclear or missing docs page, KDoc comment or example.
+labels: [documentation]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The page URL, file (README.md, examples/...) or the class or function.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or unclear?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: What would make it right?

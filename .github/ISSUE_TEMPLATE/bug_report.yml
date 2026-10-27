@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: BSD-2-Clause
+name: Bug report
+description: Something in the Kotlin SDK does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. **Never paste an API key**: the SDK never
+        prints one, but a snippet you typed might contain it. Security problems go through
+        private vulnerability reporting (see SECURITY.md), not here.
+  - type: input
+    id: version
+    attributes:
+      label: SDK version
+      description: "`EnsembleWeather.SDK_VERSION`, or the version in your Gradle file."
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime and OS
+      description: JVM version or Android API level, the OS, and the HttpTransport you use (default, OkHttp, Ktor).
+      placeholder: JDK 21 on macOS 15, default transport / Android API 34 with OkHttp 5
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include the exception's `toString()` if there was one.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The smallest snippet that shows the problem.
+      render: kotlin
+    validations:
+      required: true
+  - type: input
+    id: request-id
+    attributes:
+      label: Request id
+      description: "`requestId` from the ApiException (or `meta.requestId`), if there is one. It lets us find the request."
