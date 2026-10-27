@@ -21,3 +21,6 @@ dependencyResolutionManagement {
 rootProject.name = "ensemble-weather-kotlin"
 
 include(":examples", ":mock-server")
+
+// examples/ holds only the programs; their build file is gradle/examples/build.gradle.kts.
+project(":examples").projectDir = file("gradle/examples")

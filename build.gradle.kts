@@ -33,6 +33,7 @@ tasks.register("resolveAndLockAll") {
     notCompatibleWithConfigurationCache("Resolves configurations at execution time.")
     doFirst { require(gradle.startParameter.isWriteDependencyLocks) { "Run with --write-locks." } }
     doLast { configurations.filter { it.isCanBeResolved }.forEach { it.resolve() } }
+    dependsOn(":examples:resolveAndLockAll", ":mock-server:resolveAndLockAll")
 }
 
 kotlin {
@@ -214,3 +215,9 @@ val checkDependencies =
     }
 
 tasks.check { dependsOn(checkDependencies) }
+
+tasks.register("runExamples") {
+    description = "Runs every example in examples/ against the local mock API."
+    group = "verification"
+    dependsOn(":mock-server:runExamples")
+}
