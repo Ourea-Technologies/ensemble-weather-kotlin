@@ -72,7 +72,7 @@ dependencies {
 val testJdk = providers.gradleProperty("testJdk").map(String::toInt).orElse(11)
 
 tasks.test {
-    useJUnitPlatform()
+    useJUnitPlatform { excludeTags("live") }
     maxHeapSize = "1g"
     javaLauncher = javaToolchains.launcherFor { languageVersion = testJdk.map(JavaLanguageVersion::of) }
     systemProperty(
@@ -86,6 +86,25 @@ tasks.test {
         events("failed")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
+}
+
+// The nightly contract run against the real API (live.yml only; needs OUREA_API_KEY).
+tasks.register<Test>("liveTest") {
+    description = "Runs the live contract tests against https://api.oureawx.com."
+    group = "verification"
+    testClassesDirs =
+        sourceSets.test
+            .get()
+            .output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform { includeTags("live") }
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(11) }
+    systemProperty(
+        "ourea.specDir",
+        layout.projectDirectory
+            .dir("spec")
+            .asFile.absolutePath,
+    )
 }
 
 ktlint {

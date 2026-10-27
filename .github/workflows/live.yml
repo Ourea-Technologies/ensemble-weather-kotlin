@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# Nightly contract run against the live API with a read-only CI key. It never runs on
+# pull requests (so never for forks), and it is the only workflow that calls the API.
+name: Live
+
+on:
+  schedule:
+    - cron: "37 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    name: Quickstart and contract against api.oureawx.com
+    if: github.repository == 'Ourea-Technologies/ensemble-weather-kotlin'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: |
+            11
+            21
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - name: The quickstart, anonymous, as the README shows it
+        run: ./gradlew :examples:runQuickstart
+      - name: The contract run, with the read-only key
+        env:
+          OUREA_API_KEY: ${{ secrets.OUREA_CI_API_KEY }}
+        run: |
+          if [ -z "$OUREA_API_KEY" ]; then echo "OUREA_CI_API_KEY is not set"; exit 1; fi
+          ./gradlew liveTest

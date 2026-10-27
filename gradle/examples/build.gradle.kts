@@ -32,3 +32,10 @@ dependencies {
 ktlint {
     version = libs.versions.ktlint.get()
 }
+
+// The README quickstart as a user runs it (the nightly live.yml runs it against the real API).
+tasks.register<JavaExec>("runQuickstart") {
+    description = "Runs examples/Quickstart.kt (against OUREA_BASE_URL, else the real API)."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass = "QuickstartKt"
+}
