@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: BSD-2-Clause
+.gradle/
+.kotlin/
+build/
+.scratch/
+.idea/
+*.iml
+local.properties
+.DS_Store

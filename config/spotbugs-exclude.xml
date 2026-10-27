@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: BSD-2-Clause -->
+<!--
+  SpotBugs + Find Security Bugs run on the library's bytecode at effort=max,
+  threshold=low. These patterns are excluded because they fire on what the Kotlin
+  compiler generates, not on code in this repository. Each one names why.
+  Every Find Security Bugs (SECURITY category) pattern stays on.
+-->
+<FindBugsFilter>
+  <!-- Kotlin List/Map properties are read-only interfaces and models are immutable
+       data classes; HttpResponse.body is a transport buffer handed over by design. -->
+  <Match><Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2,MS_EXPOSE_REP"/></Match>
+  <!-- Generated: default-argument bitmasks (BIT_AND_ZZ, NS_NON_SHORT_CIRCUIT), null checks the
+       compiler inserts for Java callers (RCN), coroutine state machines and inline-function
+       bodies (DLS, SA, NP on continuations, IAOM on invokeSuspend), and smart casts of
+       `as`/`orEmpty()` on Kotlin collections (BC). -->
+  <Match><Bug pattern="BIT_AND_ZZ,NS_NON_SHORT_CIRCUIT,RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"/></Match>
+  <Match><Bug pattern="DLS_DEAD_LOCAL_STORE,SA_LOCAL_SELF_ASSIGNMENT,BC_UNCONFIRMED_CAST,BC_BAD_CAST_TO_ABSTRACT_COLLECTION"/></Match>
+  <Match><Bug pattern="NP_NONNULL_PARAM_VIOLATION,NP_LOAD_OF_KNOWN_NULL_VALUE,NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/></Match>
+  <Match><Bug pattern="IAOM_DO_NOT_INCREASE_METHOD_ACCESSIBILITY"/></Match>
+  <!-- `EnsembleWeather { ... }` is Kotlin's factory-function idiom (like `Json { }`), named after its type. -->
+  <Match>
+    <Class name="com.oureawx.ensembleweather.kotlin.EnsembleWeatherKt"/>
+    <Bug pattern="NM_METHOD_NAMING_CONVENTION"/>
+  </Match>
+  <!-- A Flow builder's lambda object, never serialised. -->
+  <Match>
+    <Class name="~com\.oureawx\.ensembleweather\.kotlin\.EnsembleWeather\$paged\$.*"/>
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+</FindBugsFilter>

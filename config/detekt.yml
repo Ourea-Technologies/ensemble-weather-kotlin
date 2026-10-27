@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# Detekt on top of its default config (buildUponDefaultConfig). Every change
+# from the default is listed here with its reason.
+
+complexity:
+  TooManyFunctions:
+    # EnsembleWeather is the API facade: one function per operation (BEHAVIOR.md section 3), by design.
+    allowedFunctionsPerClass: 40
+    allowedFunctionsPerObject: 20
+    allowedFunctionsPerFile: 40
+  CyclomaticComplexMethod:
+    # The request loop keeps BEHAVIOR.md sections 3.3, 9 and 10 (redirects, retries, cache) in one readable place.
+    allowedComplexity: 20
+  LongParameterList:
+    # Models mirror the OpenAPI schemas, which have many fields.
+    ignoreDataClasses: true
+    allowedConstructorParameters: 8
+
+style:
+  ReturnCount:
+    # Guard clauses are idiomatic Kotlin.
+    max: 4
+    excludeGuardClauses: true
+  ThrowsCount:
+    # Validation raises one precise UsageException per broken rule.
+    max: 6

@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: BSD-2-Clause
+# Copies ensemble-weather-spec at a ref into spec/ (SDK-STANDARD "Spec pinning").
+#
+#   scripts/sync-spec <ref>     pin <ref> (a tag or commit) and copy it into spec/
+#   scripts/sync-spec --check   fail if spec/ differs from the ref in spec/VERSION (CI)
+#
+# The spec comes from $OUREA_SPEC_REPO (a local clone) when set, else from
+# https://github.com/Ourea-Technologies/ensemble-weather-spec.
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+remote="https://github.com/Ourea-Technologies/ensemble-weather-spec"
+check=false
+if [[ "${1:-}" == "--check" ]]; then
+  check=true
+  ref="$(tr -d '[:space:]' < "$root/spec/VERSION")"
+else
+  ref="${1:?usage: scripts/sync-spec <ref> | --check}"
+fi
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+if [[ -n "${OUREA_SPEC_REPO:-}" ]]; then
+  repo="$OUREA_SPEC_REPO"
+else
+  repo="$work/repo"
+  git init -q "$repo"
+  git -C "$repo" fetch -q --depth 1 "$remote" "$ref" 2>/dev/null \
+    || git -C "$repo" fetch -q "$remote"
+fi
+commit="$(git -C "$repo" rev-parse --verify "${ref}^{commit}" 2>/dev/null || git -C "$repo" rev-parse --verify FETCH_HEAD)"
+mkdir -p "$work/spec"
+git -C "$repo" archive "$commit" | tar -x -C "$work/spec"
+printf '%s\n' "$ref" > "$work/spec/VERSION"
+
+if $check; then
+  if diff -r "$work/spec" "$root/spec" > "$work/diff.txt"; then
+    echo "spec/ matches ensemble-weather-spec at $ref"
+  else
+    cat "$work/diff.txt" >&2
+    echo "spec/ differs from ensemble-weather-spec at $ref: run scripts/sync-spec $ref" >&2
+    exit 1
+  fi
+else
+  rm -rf "$root/spec"
+  cp -R "$work/spec" "$root/spec"
+  echo "spec/ is now ensemble-weather-spec at $ref"
+fi
