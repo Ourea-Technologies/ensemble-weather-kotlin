@@ -98,6 +98,8 @@ tasks.register<Test>("liveTest") {
             .output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
     useJUnitPlatform { includeTags("live") }
+    // A second lock: it runs only where live.yml sets OUREA_LIVE=1, never from check or coverage.
+    onlyIf("OUREA_LIVE=1 (live.yml only)") { System.getenv("OUREA_LIVE") == "1" }
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(11) }
     systemProperty(
         "ourea.specDir",
@@ -105,6 +107,10 @@ tasks.register<Test>("liveTest") {
             .dir("spec")
             .asFile.absolutePath,
     )
+}
+
+kover {
+    currentProject { instrumentation { disabledForTestTasks.add("liveTest") } }
 }
 
 ktlint {
@@ -212,15 +218,20 @@ val checkDependencies =
         description = "Fails if a runtime dependency has no justification in CONTRIBUTING.md."
         group = "verification"
         val contributing = layout.projectDirectory.file("CONTRIBUTING.md")
-        val declared =
-            provider {
-                listOf("api", "implementation", "runtimeOnly").flatMap { name ->
-                    configurations[name].dependencies.map { "${it.group}:${it.name}" }
-                }
-            }
+        val runtime = configurations.runtimeClasspath
         inputs.file(contributing)
-        inputs.property("declared", declared)
+        notCompatibleWithConfigurationCache("Reads the resolved runtime classpath.")
         doLast {
+            // The direct runtime dependencies as resolved (the Kotlin plugin adds kotlin-stdlib itself).
+            val declared =
+                runtime
+                    .get()
+                    .incoming.resolutionResult.root.dependencies
+                    .filterIsInstance<org.gradle.api.artifacts.result.ResolvedDependencyResult>()
+                    .filterNot { it.isConstraint }
+                    .mapNotNull { it.requested as? org.gradle.api.artifacts.component.ModuleComponentSelector }
+                    .map { "${it.group}:${it.module}" }
+                    .distinct()
             val text = contributing.asFile.readText()
             val section =
                 text
@@ -232,11 +243,11 @@ val checkDependencies =
                     """^- `([^`]+)`: \S""",
                     RegexOption.MULTILINE,
                 ).findAll(section).map { it.groupValues[1] }.toSet()
-            val missing = declared.get().filterNot { it in justified }
-            val stale = justified.filterNot { it in declared.get() }
+            val missing = declared.filterNot { it in justified }
+            val stale = justified.filterNot { it in declared }
             check(missing.isEmpty()) { "Runtime dependencies without a justification in CONTRIBUTING.md: $missing" }
             check(stale.isEmpty()) { "CONTRIBUTING.md justifies dependencies the build does not declare: $stale" }
-            println("Runtime dependencies, each justified: ${declared.get()}")
+            println("Runtime dependencies, each justified: $declared")
         }
     }
 

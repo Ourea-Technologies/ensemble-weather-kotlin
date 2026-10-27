@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -17,6 +18,7 @@ import kotlin.time.Duration.Companion.hours
  * it, never `test`, PRs or forks.
  */
 @Tag("live")
+@EnabledIfEnvironmentVariable(named = "OUREA_LIVE", matches = "1")
 class LiveContractTest {
     private val ourea = EnsembleWeather()
 

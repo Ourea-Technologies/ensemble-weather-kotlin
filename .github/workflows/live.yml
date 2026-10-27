@@ -32,6 +32,7 @@ jobs:
       - name: The contract run, with the read-only key
         env:
           OUREA_API_KEY: ${{ secrets.OUREA_CI_API_KEY }}
+          OUREA_LIVE: "1"
         run: |
           if [ -z "$OUREA_API_KEY" ]; then echo "OUREA_CI_API_KEY is not set"; exit 1; fi
           ./gradlew liveTest
