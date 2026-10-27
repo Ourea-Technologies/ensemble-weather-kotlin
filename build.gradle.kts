@@ -56,6 +56,7 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.snakeyaml)
     testImplementation(kotlin("test-junit5"))
     testRuntimeOnly(libs.junit.platform.launcher)
 
@@ -68,6 +69,7 @@ val testJdk = providers.gradleProperty("testJdk").map(String::toInt).orElse(11)
 
 tasks.test {
     useJUnitPlatform()
+    maxHeapSize = "1g"
     javaLauncher = javaToolchains.launcherFor { languageVersion = testJdk.map(JavaLanguageVersion::of) }
     systemProperty(
         "ourea.specDir",

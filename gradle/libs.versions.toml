@@ -5,7 +5,8 @@
 kotlin = "2.4.21"
 coroutines = "1.11.0"
 serialization = "1.11.0"
-junit = "5.14.4"  # JUnit 6 needs JDK 17; the library is tested on 11
+junit = "5.14.4"
+snakeyaml = "2.7"  # JUnit 6 needs JDK 17; the library is tested on 11
 ktlint = "1.8.0"
 ktlintGradle = "14.2.0"
 detekt = "2.0.0-alpha.6"
@@ -27,6 +28,7 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+snakeyaml = { module = "org.yaml:snakeyaml", version.ref = "snakeyaml" }
 # Tooling.
 findsecbugs = { module = "com.h3xstream.findsecbugs:findsecbugs-plugin", version.ref = "findsecbugs" }
 android-signature = { module = "net.sf.androidscents.signature:android-api-level-24", version.ref = "androidSignature" }

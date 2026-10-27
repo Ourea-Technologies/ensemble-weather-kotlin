@@ -196,4 +196,5 @@ org.slf4j:slf4j-api:2.0.7=ktlint
 org.slf4j:slf4j-simple:2.0.17=spotbugsSlf4j
 org.snakeyaml:snakeyaml-engine:2.10=detekt
 org.xmlresolver:xmlresolver:5.3.3=spotbugs
+org.yaml:snakeyaml:2.7=testCompileClasspath,testRuntimeClasspath
 empty=annotationProcessor,detektPlugins,dokkaHtmlModuleOutputDirectoriesResolver~internal,dokkaHtmlPublicationPluginResolver~internal,implementationDependenciesMetadata,kotlinCompilerPluginClasspath,kotlinNativeCompilerPluginClasspath,kotlinScriptDefExtensions,koverExternalArtifacts,koverExternalArtifactsJvm,testAnnotationProcessor,testImplementationDependenciesMetadata,testKotlinScriptDefExtensions

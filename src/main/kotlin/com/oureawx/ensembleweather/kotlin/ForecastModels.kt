@@ -472,12 +472,12 @@ public data class ProbabilityThresholds(
 /** The options the server applied, after its tier clamps. */
 @Serializable
 public data class AppliedOptions(
+    /** The requested options the server changed (`max_hours`, `max_days`); empty when none. */
+    public val clamped: List<String>,
     /** Hours served past the first; `null` with `hourly = false`. */
     @SerialName("max_hours") public val maxHours: Int? = null,
     /** Daily rows served for; `null` with `daily = false`. */
     @SerialName("max_days") public val maxDays: Int? = null,
-    /** The requested options the server changed (`max_hours`, `max_days`). */
-    public val clamped: List<String> = emptyList(),
 )
 
 /**
