@@ -137,8 +137,6 @@ public data class PublicCatalogLocationDetail(
     public val template: CatalogTemplateSummary? = null,
     /** Published content entries (with `include = listOf("content")`). */
     public val content: List<CatalogResolvedEntry>? = null,
-    /** Resolved ad placements (with `include = listOf("ads")`, Free tier). */
-    public val ads: List<CatalogResolvedAdSlot>? = null,
 ) : ApiResponse {
     @Transient
     override var meta: ResponseMeta = ResponseMeta.None
@@ -170,8 +168,8 @@ public data class PublicCatalogStation(
     public val country: String? = null,
     /** Other names. */
     public val aliases: List<String>? = null,
-    /** The observation network (`Snotel`). */
-    public val network: String? = null,
+    /** The observation network (`snotel`). */
+    public val network: StationNetwork? = null,
     /** The station's id in its network. */
     @SerialName("source_station_id") public val sourceStationId: String? = null,
     /** Elevation above mean sea level, metres. */
@@ -180,8 +178,8 @@ public data class PublicCatalogStation(
     @SerialName("sensor_height_agl_m") public val sensorHeightAglM: Double? = null,
     /** What the station measures. */
     @SerialName("sensor_capabilities") public val sensorCapabilities: List<String>? = null,
-    /** The station status (`Active`). */
-    @SerialName("station_status") public val stationStatus: String? = null,
+    /** The station status (`active`). */
+    @SerialName("station_status") public val stationStatus: StationStatus? = null,
     /** When it last reported (ISO 8601). */
     @SerialName("last_report_at") public val lastReportAt: String? = null,
     /** Free-form JSON of the last report. */
@@ -239,8 +237,8 @@ public data class PublicCatalogStationDetail(
     public val country: String? = null,
     /** Other names. */
     public val aliases: List<String>? = null,
-    /** The observation network. */
-    public val network: String? = null,
+    /** The observation network (`snotel`). */
+    public val network: StationNetwork? = null,
     /** The station's id in its network. */
     @SerialName("source_station_id") public val sourceStationId: String? = null,
     /** Elevation above mean sea level, metres. */
@@ -250,7 +248,7 @@ public data class PublicCatalogStationDetail(
     /** What the station measures. */
     @SerialName("sensor_capabilities") public val sensorCapabilities: List<String>? = null,
     /** The station status. */
-    @SerialName("station_status") public val stationStatus: String? = null,
+    @SerialName("station_status") public val stationStatus: StationStatus? = null,
     /** When it last reported (ISO 8601). */
     @SerialName("last_report_at") public val lastReportAt: String? = null,
     /** Free-form JSON of the last report. */
@@ -283,8 +281,6 @@ public data class PublicCatalogStationDetail(
     public val template: CatalogTemplateSummary? = null,
     /** Published content entries. */
     public val content: List<CatalogResolvedEntry>? = null,
-    /** Resolved ad placements. */
-    public val ads: List<CatalogResolvedAdSlot>? = null,
 ) : ApiResponse {
     @Transient
     override var meta: ResponseMeta = ResponseMeta.None
@@ -363,9 +359,9 @@ public data class PublicCatalogNearbyStation(
     /** Its name. */
     public val name: String,
     /** Its network. */
-    public val network: String,
+    public val network: StationNetwork,
     /** Its status. */
-    @SerialName("station_status") public val stationStatus: String,
+    @SerialName("station_status") public val stationStatus: StationStatus,
     /** Whether it is the location's primary station. */
     @SerialName("is_primary") public val isPrimary: Boolean,
     /** Distance, km. */
@@ -382,9 +378,9 @@ public data class CatalogTemplateSummary(
     /** The sections. */
     public val spec: List<CmsTemplateSection>,
     /** The location type it is for; `null` is a wildcard. */
-    @SerialName("location_type") public val locationType: String? = null,
+    @SerialName("location_type") public val locationType: LocationType? = null,
     /** The template variant; `null` is a wildcard. */
-    @SerialName("template_variant") public val templateVariant: String? = null,
+    @SerialName("template_variant") public val templateVariant: TemplateVariant? = null,
 )
 
 /** One section of a page template. */
@@ -417,56 +413,4 @@ public data class CatalogResolvedEntry(
     @SerialName("resolved_locale") public val resolvedLocale: String,
     /** When it was updated (ISO 8601). */
     @SerialName("updated_at") public val updatedAt: String,
-)
-
-/** One filled ad slot. */
-@Serializable
-public data class CatalogResolvedAdSlot(
-    /** The slot key. */
-    @SerialName("slot_key") public val slotKey: String,
-    /** `house` or `third_party`. */
-    public val kind: String,
-    /** The slot's rendering sizes. */
-    public val sizes: List<List<Int>>,
-    /** Present when [kind] is `house`. */
-    public val house: CatalogHousePlacement? = null,
-    /** Present when [kind] is `third_party`. */
-    @SerialName("third_party") public val thirdParty: CatalogThirdPartyPlacement? = null,
-)
-
-/** A house ad placement. */
-@Serializable
-public data class CatalogHousePlacement(
-    /** The campaign id. */
-    @SerialName("campaign_id") public val campaignId: String,
-    /** The creative id. */
-    @SerialName("creative_id") public val creativeId: String,
-    /** The creative. */
-    public val content: CmsAdCreativeContent,
-)
-
-/** A house ad creative. */
-@Serializable
-public data class CmsAdCreativeContent(
-    /** The headline. */
-    public val headline: String? = null,
-    /** The body text. */
-    public val body: String? = null,
-    /** The call-to-action label. */
-    public val cta: String? = null,
-    /** Where a click goes. */
-    @SerialName("click_url") public val clickUrl: String? = null,
-    /** The photo id. */
-    @SerialName("photo_id") public val photoId: String? = null,
-)
-
-/** A third-party ad placement. */
-@Serializable
-public data class CatalogThirdPartyPlacement(
-    /** The ad unit id. */
-    @SerialName("unit_id") public val unitId: String,
-    /** `adsense`, `gam` or `custom`. */
-    public val provider: String,
-    /** The network config, verbatim. */
-    public val config: JsonObject,
 )

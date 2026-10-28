@@ -132,7 +132,7 @@ public data class TimeSeriesPoint(
     /** Whether the gust is worth showing beside the wind. */
     @SerialName("gust_notable") public val gustNotable: Boolean? = null,
     /** The precipitation type, when precipitation is expected. */
-    @SerialName("precip_type") public val precipType: PrecipType? = null,
+    @SerialName("precipitation_type") public val precipitationType: PrecipType? = null,
     /** A detected temperature inversion or cold pool. */
     public val inversion: InversionInfo? = null,
     /** The hour's freezing level. */
@@ -160,31 +160,28 @@ public data class EnsembleStats(
     public val precipitation: Quantiles,
     /** Sustained wind speed. */
     @SerialName("wind_speed") public val windSpeed: Quantiles,
-    /** Wind direction, degrees: an arc, see [Quantiles] and [windDirectionCircular]. */
-    @SerialName("wind_direction") public val windDirection: Quantiles,
+    /**
+     * Wind direction, degrees, as a circular distribution: a mean, a spread and the
+     * clockwise 50 % and 90 % sectors (a sector's `to` may be less than its `from`).
+     */
+    @SerialName("wind_direction") public val windDirection: CircularStats,
     /** Dewpoint. */
     public val dewpoint: Quantiles? = null,
     /** Snow level. */
     @SerialName("snow_level") public val snowLevel: Quantiles? = null,
     /** NWS apparent temperature. */
     @SerialName("feels_like") public val feelsLike: Quantiles? = null,
-    /** UTCI (not served yet). */
-    @SerialName("feels_like_utci") public val feelsLikeUtci: Quantiles? = null,
     /** Peak gust. */
     @SerialName("wind_gust") public val windGust: Quantiles? = null,
-    /** Wind direction as a circular distribution. */
-    @SerialName("wind_direction_circular") public val windDirectionCircular: CircularStats? = null,
     /** Snow-to-liquid ratio. */
     public val slr: Quantiles? = null,
     /** Snowfall in the hour, with its occurrence [Quantiles.probability]; absent means unknown. */
     public val snowfall: Quantiles? = null,
     /** Cloud cover, percent. */
     @SerialName("cloud_cover") public val cloudCover: Quantiles? = null,
-    /** Skin (ground surface) temperature. */
+    /** Skin (ground surface) temperature (with `include = listOf("skin_temperature")`). */
     @SerialName("skin_temperature") public val skinTemperature: Quantiles? = null,
-    /** Model-native precipitation-type code (with `diagnostics = listOf("ptype")`). */
-    public val ptype: Quantiles? = null,
-    /** Mean sea-level pressure (hPa, or inHg for imperial). */
+    /** Mean sea-level pressure, hPa or inHg (with `include = listOf("mslp")`). */
     public val mslp: Quantiles? = null,
     /** Convective available potential energy, J/kg. */
     public val cape: Quantiles? = null,
@@ -288,8 +285,8 @@ public data class ModelMean(
     public val precipitation: Quantiles? = null,
     /** Wind speed. */
     @SerialName("wind_speed") public val windSpeed: Quantiles? = null,
-    /** Wind direction (an arc). */
-    @SerialName("wind_direction") public val windDirection: Quantiles? = null,
+    /** Wind direction, as a circular distribution. */
+    @SerialName("wind_direction") public val windDirection: CircularStats? = null,
     /** Snow level. */
     @SerialName("snow_level") public val snowLevel: Quantiles? = null,
     /** Snow-to-liquid ratio. */
@@ -361,35 +358,31 @@ public data class DailyForecast(
     /** The calendar-day minimum temperature. */
     public val low: Quantiles,
     /** The day's precipitation total: each member's own day total. */
-    @SerialName("total_precip") public val totalPrecip: Quantiles,
+    @SerialName("total_precipitation") public val totalPrecipitation: Quantiles,
     /** P(day total ≥ 2.5 mm). */
-    @SerialName("precip_probability") public val precipProbability: Double,
+    @SerialName("precipitation_probability") public val precipitationProbability: Double,
     /** P(day total ≥ 1.0 mm): the chance it precipitates at all. */
-    @SerialName("precip_occurrence_probability") public val precipOccurrenceProbability: Double,
+    @SerialName("precipitation_occurrence_probability") public val precipitationOccurrenceProbability: Double,
     /** P(day snowfall ≥ 2.5 mm). */
     @SerialName("snow_probability") public val snowProbability: Double,
     /** The day's precipitation headline, chosen by the server. */
-    @SerialName("precip_display") public val precipDisplay: PrecipDisplay,
+    @SerialName("precipitation_display") public val precipitationDisplay: PrecipDisplay,
     /** Sun and moon. */
     public val astro: DailyAstro,
     /** The mean snow level. */
     @SerialName("snow_level_mean") public val snowLevelMean: Double? = null,
     /** The day's precipitation type; `null` on a dry day. */
-    @SerialName("precip_type") public val precipType: PrecipitationKind? = null,
+    @SerialName("precipitation_type") public val precipitationType: PrecipitationKind? = null,
     /** The day's maximum feels-like temperature. */
     @SerialName("feels_like_high") public val feelsLikeHigh: Quantiles? = null,
     /** The day's minimum feels-like temperature. */
     @SerialName("feels_like_low") public val feelsLikeLow: Quantiles? = null,
-    /** The day's maximum UTCI (not served yet). */
-    @SerialName("feels_like_utci_high") public val feelsLikeUtciHigh: Quantiles? = null,
-    /** The day's minimum UTCI (not served yet). */
-    @SerialName("feels_like_utci_low") public val feelsLikeUtciLow: Quantiles? = null,
     /** The day's snowfall total: each member's own day total. */
     @SerialName("total_snowfall") public val totalSnowfall: Quantiles? = null,
     /** The day's snow level. */
     @SerialName("snow_level") public val snowLevel: Quantiles? = null,
     /** The day total given a wet day. */
-    @SerialName("total_precip_if_wet") public val totalPrecipIfWet: Quantiles? = null,
+    @SerialName("total_precipitation_if_wet") public val totalPrecipitationIfWet: Quantiles? = null,
     /** The day's snowfall given a snowy day. */
     @SerialName("total_snowfall_if_wet") public val totalSnowfallIfWet: Quantiles? = null,
     /** The mean cloud cover, percent. */
@@ -419,13 +412,13 @@ public data class PrecipDisplay(
 @Serializable
 public data class DailyWind(
     /** The severity class. */
-    public val status: WindStatus? = null,
+    public val status: WindStatus,
     /** The expected peak wind. */
-    @SerialName("peak_speed") public val peakSpeed: Double? = null,
+    @SerialName("peak_speed") public val peakSpeed: Double,
+    /** Whether [peakSpeed] is a gust. */
+    @SerialName("is_gust") public val isGust: Boolean,
     /** The "gusts could reach" upper band. */
     @SerialName("peak_speed_p90") public val peakSpeedP90: Double? = null,
-    /** Whether [peakSpeed] is a gust. */
-    @SerialName("is_gust") public val isGust: Boolean? = null,
     /** The peak sustained wind. */
     @SerialName("sustained_speed") public val sustainedSpeed: Double? = null,
 )
@@ -461,10 +454,11 @@ public data class ProbabilityThresholds(
     @SerialName("hourly_precipitation") public val hourlyPrecipitation: Double,
     /** The hourly snowfall occurrence threshold. */
     @SerialName("hourly_snowfall") public val hourlySnowfall: Double,
-    /** `daily[].precip_probability`'s threshold. */
-    @SerialName("daily_precip_probability") public val dailyPrecipProbability: Double,
-    /** `daily[].precip_occurrence_probability`'s threshold. */
-    @SerialName("daily_precip_occurrence_probability") public val dailyPrecipOccurrenceProbability: Double,
+    /** `daily[].precipitation_probability`'s threshold. */
+    @SerialName("daily_precipitation_probability") public val dailyPrecipitationProbability: Double,
+    /** `daily[].precipitation_occurrence_probability`'s threshold. */
+    @SerialName("daily_precipitation_occurrence_probability")
+    public val dailyPrecipitationOccurrenceProbability: Double,
     /** `daily[].snow_probability`'s threshold. */
     @SerialName("daily_snow_probability") public val dailySnowProbability: Double,
 )
@@ -487,6 +481,11 @@ public data class AppliedOptions(
  */
 @Serializable
 public data class ProbabilityResult(
+    /**
+     * The term's canonical spelling, as the SDK sent it: the key the SDK maps each answer
+     * back to your term by.
+     */
+    public val term: String,
     /** The variable. */
     public val variable: Variable,
     /** The comparison. */
@@ -510,17 +509,23 @@ public data class ProbabilityResult(
     public val probability: Double? = null,
     /** How many members voted. */
     public val members: Int,
+    /** Why [probability] is `null`; `null` when it is not. */
+    @SerialName("null_reason") public val nullReason: NullReason? = null,
 )
 
 /** One window total, answered by the server: the distribution of each member's own total. */
 @Serializable
 public data class WindowTotal(
-    /** [Variable.Precipitation] or [Variable.Snowfall]. */
+    /** The term's canonical spelling, as the SDK sent it: the key answers are mapped back by. */
+    public val term: String,
+    /** [Variable.Precipitation] or [Variable.Snowfall] (the terms this SDK sends). */
     public val variable: Variable,
     /** The window's first hour. */
     @SerialName("window_start_hours") public val windowStartHours: Int,
     /** The window's end hour (exclusive). */
     @SerialName("window_end_hours") public val windowEndHours: Int,
+    /** How the window is read: [TotalAggregation.Total] for an amount. */
+    public val aggregation: TotalAggregation,
     /** The window's first instant (ISO 8601). */
     public val from: String? = null,
     /** The window's end (ISO 8601, exclusive). */
@@ -529,6 +534,8 @@ public data class WindowTotal(
     public val quantiles: Quantiles? = null,
     /** How many members cover the window. */
     public val members: Int,
+    /** Why [quantiles] is `null`; `null` when it is not. */
+    @SerialName("null_reason") public val nullReason: NullReason? = null,
 )
 
 /** A forecast at one of a location's additional elevations. */
@@ -542,10 +549,6 @@ public data class ElevationForecast(
     public val lat: Double,
     /** Where it was forecast. */
     public val lon: Double,
-    /** Whether this is the default elevation to show. */
-    @SerialName("default") public val isDefault: Boolean? = null,
-    /** Legacy compact hourly points; prefer [hourly]. */
-    public val timeseries: List<ElevationTimeSeriesPoint>? = null,
     /** The full hourly series at this elevation. */
     public val hourly: List<TimeSeriesPoint>? = null,
     /** Daily summaries at this elevation. */
@@ -554,42 +557,17 @@ public data class ElevationForecast(
     @SerialName("snow_outlook") public val snowOutlook: SnowOutlook? = null,
 )
 
-/** A legacy compact hourly point of an [ElevationForecast]. */
-@Serializable
-public data class ElevationTimeSeriesPoint(
-    /** The valid time (ISO 8601). */
-    @SerialName("valid_time") public val validTime: String,
-    /** Hours from the reference init. */
-    @SerialName("lead_time_hours") public val leadTimeHours: Int,
-    /** Temperature. */
-    public val temperature: Quantiles,
-    /** Precipitation. */
-    public val precipitation: Quantiles,
-    /** The condition code. */
-    public val condition: Condition,
-    /** The display text. */
-    @SerialName("condition_text") public val conditionText: String,
-    /** The icon hint. */
-    @SerialName("condition_icon") public val conditionIcon: ConditionIcon,
-    /** Elevation minus snow level. */
-    @SerialName("snow_level_delta") public val snowLevelDelta: Quantiles? = null,
-    /** Wind speed. */
-    @SerialName("wind_speed") public val windSpeed: Quantiles? = null,
-    /** Gust. */
-    @SerialName("wind_gust") public val windGust: Quantiles? = null,
-)
-
 /** Columbia Gorge gap flow at the first served hour. */
 @Serializable
 public data class GapFlow(
     /** The strength class. */
-    public val status: GapFlowStatus? = null,
+    public val status: GapFlowStatus,
     /** The pressure difference across the Gorge, hPa. */
-    @SerialName("pressure_diff_hpa") public val pressureDiffHpa: Double? = null,
+    @SerialName("pressure_diff_hpa") public val pressureDiffHpa: Double,
     /** The wind multiplier applied. */
-    @SerialName("wind_multiplier") public val windMultiplier: Double? = null,
+    @SerialName("wind_multiplier") public val windMultiplier: Double,
     /** The flow direction. */
-    public val direction: String? = null,
+    public val direction: String,
 )
 
 /** A nearby observation sensor. */
@@ -660,7 +638,7 @@ public data class CurrentConditions(
     /** Dewpoint. */
     public val dewpoint: Double? = null,
     /** The chance of at least a trace in the hour, 0..1. */
-    @SerialName("precip_probability") public val precipProbability: Double? = null,
+    @SerialName("precipitation_probability") public val precipitationProbability: Double? = null,
     /** The station whose reading anchored the hour. */
     public val station: CurrentStation? = null,
 )
@@ -668,6 +646,8 @@ public data class CurrentConditions(
 /** The surface station that anchored a "right now" block. */
 @Serializable
 public data class CurrentStation(
+    /** The station's id in its network, as `nearest_sensors[].station_id`. */
+    @SerialName("station_id") public val stationId: String,
     /** The station's name. */
     public val name: String,
     /** When it reported (ISO 8601). */

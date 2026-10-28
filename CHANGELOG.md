@@ -7,6 +7,58 @@ outside the Ourea team are credited by GitHub handle.
 
 ## [Unreleased]
 
+Moves to the v1 contract live on api.oureawx.com (ensemble-weather-spec
+`8b85fea`, the server's public spec byte for byte). Breaking (0.x).
+
+### Changed
+
+- `precip_*` is `precipitation_*` everywhere: `DailyForecast.totalPrecipitation`,
+  `totalPrecipitationIfWet`, `precipitationProbability`,
+  `precipitationOccurrenceProbability`, `precipitationType`,
+  `precipitationDisplay`; `TimeSeriesPoint.precipitationType`;
+  `CurrentConditions.precipitationProbability`;
+  `SensorObservation.precipitationRate`; `ProbabilityThresholds.dailyPrecipitation*`.
+- `EnsembleStats.windDirection` and `ModelMean.windDirection` are `CircularStats`
+  (mean, stddev, `sector50`/`sector90`), not `Quantiles`.
+- Probability and window-total answers are matched to the caller's terms by the
+  `term` the server echoes, not by a rebuilt key.
+- Errors: the 16 public codes map as BEHAVIOR.md section 8 says
+  (`AUTH_UNAVAILABLE` is unavailable; `OUTSIDE_COVERAGE` is a 404); a retired
+  code maps by status. `requestId` prefers the body's `request_id`.
+  `Retry-After` is honoured on 504 as on 429 and 503.
+- `ActiveAlert.severity`/`urgency` are open enums (`AlertSeverity`,
+  `AlertUrgency`, snake_case); catalog `network`, `station_status`,
+  `template_variant` and a template's `location_type` are open enums
+  (`StationNetwork`, `StationStatus`, `TemplateVariant`, `LocationType`).
+  `ConditionIcon` gains the night forms it lacked.
+- `LocationRef.slug` and `type` are nullable (a coordinate forecast's location
+  may have neither); `DailyWind` and `GapFlow` fields the spec requires are no
+  longer nullable.
+- `getForecast(state, slug)`: the location parameter is `slug` (was `name`), as
+  in the spec's `{slug}` path parameter and the vectors.
+
+### Added
+
+- `ProbabilityResult.term`/`nullReason`; `WindowTotal.term`, `aggregation`
+  (`TotalAggregation`) and `nullReason` (`NullReason`).
+- `ActiveAlert.certainty` (`AlertCertainty`); `CurrentStation.stationId`.
+- `ApiException.docUrl` and `param`; `PermissionException.nearestLocation`
+  (`NearestLocation`).
+- `ForecastOptions.include` (`mslp`, `skin_temperature`), sent sorted.
+- `getRuns(limit, cursor)` and `RunsResponse.nextCursor`.
+- The spec-drift test also fails when the spec makes a field nullable and the
+  model does not.
+
+### Removed
+
+- `getStormReports`/`getStormReport`, `StormReportCard` and
+  `StormReportsResponse` (not in the public API).
+- Catalog ads: `PublicCatalogLocationDetail.ads`, `PublicCatalogStationDetail.ads`
+  and their models.
+- `EnsembleStats.feelsLikeUtci`, `ptype` and `windDirectionCircular`,
+  `DailyForecast.feelsLikeUtci*`, `ElevationForecast.isDefault`/`timeseries` and
+  `ElevationTimeSeriesPoint`.
+
 ## [0.1.0] - 2026-10-26
 
 ### Added

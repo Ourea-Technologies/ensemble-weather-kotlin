@@ -125,7 +125,7 @@ class VectorsTest {
                 if (location != null) {
                     client.getForecast(location, options)
                 } else {
-                    client.getForecast(args.string("state"), args.string("name"), options)
+                    client.getForecast(args.string("state"), args.string("slug"), options)
                 }
             }
 
@@ -340,7 +340,7 @@ class VectorsTest {
         assertEquals(raw, (navigate(json, path) as? JsonPrimitive)?.content, path)
         val known =
             when (path) {
-                "location.type" -> (value as ForecastResponse).location.type.isKnown
+                "location.type" -> (value as ForecastResponse).location.type?.isKnown == true
                 "units" -> (value as ForecastResponse).units.isKnown
                 else -> fail("the runner has no typed accessor for the open enum at $path")
             }

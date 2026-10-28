@@ -42,7 +42,8 @@ class LiveContractTest {
 
     @Test
     fun `search, catalog and attribution answer`() =
-        runBlocking {
+        // Unit: a @Test that returns a value is silently skipped by JUnit.
+        runBlocking<Unit> {
             assertTrue(ourea.searchLocations("hood meadows").items.isNotEmpty())
             assertEquals(
                 3,

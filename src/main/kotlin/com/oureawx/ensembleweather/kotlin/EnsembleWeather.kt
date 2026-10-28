@@ -112,20 +112,20 @@ public class EnsembleWeather private constructor(
         location: String,
         options: LocationForecastOptions.() -> Unit = {},
     ): ForecastResponse {
-        val (state, name) = splitLocation(location)
-        return getForecast(state, name, options)
+        val (state, slug) = splitLocation(location)
+        return getForecast(state, slug, options)
     }
 
-    /** The forecast for the location [name] (its slug) in [state] (a USPS code). */
+    /** The forecast for the location [slug] in [state] (a USPS code). */
     public suspend fun getForecast(
         state: String,
-        name: String,
+        slug: String,
         options: LocationForecastOptions.() -> Unit = {},
     ): ForecastResponse {
         val o = LocationForecastOptions().apply(options)
         val query = Query()
         query.addList("elevations", o.elevations)
-        return forecast(Operation("getLocationForecast"), locationPath(state, name), query, o)
+        return forecast(Operation("getLocationForecast"), locationPath(state, slug), query, o)
     }
 
     /**
@@ -169,32 +169,27 @@ public class EnsembleWeather private constructor(
         query.addList("exclude_sources", o.excludeSources)
         query.add("nowcast", o.nowcast, default = true)
         query.addList("diagnostics", o.diagnostics)
+        query.addList("include", o.include?.distinct()?.sorted())
         query.addList("feels_like", o.feelsLike, default = listOf("nws"))
         query.addRaw("prob", prob.wire)
         query.addRaw("totals", totals.wire)
         val fetched = requester.get(operation, path, query.build())
         val body = decode(fetched, serializer<ForecastResponse>())
-        return body.answering(prob, totals, units).also { it.attach(fetched.meta) }
+        return body.answering(prob, totals).also { it.attach(fetched.meta) }
     }
 
     private fun ForecastResponse.answering(
         prob: CanonicalTerms,
         totals: CanonicalTerms,
-        units: Units,
     ): ForecastResponse {
         if (prob.callerOrder.isEmpty() && totals.callerOrder.isEmpty()) return this
-        // The server answers in the order sent; give each caller term its answer (BEHAVIOR.md section 4).
-        val answeredUnits = if (this.units.isKnown) this.units else units
+        // Each answer echoes its term; give each caller term its answer (BEHAVIOR.md sections 4, 5).
         return copy(
             probabilities =
                 if (prob.callerOrder.isEmpty()) {
                     probabilities
                 } else {
-                    Terms.mapProbabilities(
-                        prob,
-                        probabilities,
-                        answeredUnits,
-                    )
+                    Terms.mapProbabilities(prob, probabilities)
                 },
             windowTotals =
                 if (totals.callerOrder.isEmpty()) {
@@ -215,8 +210,8 @@ public class EnsembleWeather private constructor(
         location: String,
         options: CurrentOptions.() -> Unit = {},
     ): CurrentResponse {
-        val (state, name) = splitLocation(location)
-        return current(Operation("getCurrentConditions"), locationPath(state, name) + "/current", Query(), options)
+        val (state, slug) = splitLocation(location)
+        return current(Operation("getCurrentConditions"), locationPath(state, slug) + "/current", Query(), options)
     }
 
     /** Current conditions at a point, with an optional elevation in metres (Pro). */
@@ -251,10 +246,10 @@ public class EnsembleWeather private constructor(
 
     /** Active NWS alerts at a named location. */
     public suspend fun getAlerts(location: String): AlertsResponse {
-        val (state, name) = splitLocation(location)
+        val (state, slug) = splitLocation(location)
         return fetch<AlertsResponse>(
             Operation("getLocationAlerts"),
-            locationPath(state, name) + "/alerts",
+            locationPath(state, slug) + "/alerts",
             Query(),
         )
     }
@@ -281,11 +276,11 @@ public class EnsembleWeather private constructor(
         location: String,
         options: NearbyOptions.() -> Unit = {},
     ): NearbyLocationsResponse {
-        val (state, name) = splitLocation(location)
+        val (state, slug) = splitLocation(location)
         val query = nearbyQuery(options)
         return fetch<NearbyLocationsResponse>(
             Operation("getNearbyLocations"),
-            locationPath(state, name) + "/nearby",
+            locationPath(state, slug) + "/nearby",
             query,
         )
     }
@@ -477,31 +472,23 @@ public class EnsembleWeather private constructor(
         }
     }
 
-    // ---- Runs, storm reports, attribution ----------------------------------------------
+    // ---- Runs, attribution ---------------------------------------------------------------
 
-    /** The model runs a `run` option can pin, and what a forecast serves now. */
-    public suspend fun getRuns(limit: Int? = null): RunsResponse {
-        val query = Query().apply { add("limit", limit, default = DEFAULT_RUNS_LIMIT) }
+    /**
+     * The model runs a `run` option can pin, and what a forecast serves now. Pass a
+     * previous page's [RunsResponse.nextCursor] as [cursor] for older runs.
+     */
+    public suspend fun getRuns(
+        limit: Int? = null,
+        cursor: String? = null,
+    ): RunsResponse {
+        val query =
+            Query().apply {
+                add("limit", limit, default = DEFAULT_RUNS_LIMIT)
+                add("cursor", cursor)
+            }
         return fetch<RunsResponse>(Operation("getAvailableRuns"), "/api/v1/runs", query)
     }
-
-    /** Published storm report cards, most recent onset first. */
-    public suspend fun getStormReports(limit: Int? = null): StormReportsResponse {
-        val query = Query().apply { add("limit", limit, default = DEFAULT_STORM_LIMIT) }
-        return fetch<StormReportsResponse>(
-            Operation("getStormReports"),
-            "/api/v1/storm-reports",
-            query,
-        )
-    }
-
-    /** One storm report card. */
-    public suspend fun getStormReport(id: Long): StormReportCard =
-        fetch<StormReportCard>(
-            Operation("getStormReport"),
-            "/api/v1/storm-reports/$id",
-            Query(),
-        )
 
     /** Every data source with its licence and required notices. Sent without the API key. */
     public suspend fun getAttribution(): AttributionRegistry =
@@ -690,7 +677,6 @@ public class EnsembleWeather private constructor(
         private const val DEFAULT_SEARCH_LIMIT = 20
         private const val DEFAULT_CATALOG_LIMIT = 20
         private const val DEFAULT_RUNS_LIMIT = 10
-        private const val DEFAULT_STORM_LIMIT = 20
 
         internal val JSON: Json =
             Json {
@@ -732,10 +718,10 @@ public class EnsembleWeather private constructor(
 
         internal fun locationPath(
             state: String,
-            name: String,
+            slug: String,
         ): String {
-            if (state.isEmpty() || name.isEmpty()) throw UsageException("a location needs a state and a slug")
-            return "/api/v1/locations/${Query.encode(canonicalState(state))}/${Query.encode(name)}"
+            if (state.isEmpty() || slug.isEmpty()) throw UsageException("a location needs a state and a slug")
+            return "/api/v1/locations/${Query.encode(canonicalState(state))}/${Query.encode(slug)}"
         }
     }
 }

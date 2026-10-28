@@ -188,6 +188,77 @@ class ClientTest {
         }
 
     @Test
+    fun `Retry-After on a 504 is honoured`() =
+        runTest {
+            val (client, recorder) =
+                client { _, n ->
+                    if (n == 1) HttpResponse(504, mapOf("Retry-After" to listOf("3"))) else ok(forecastBody)
+                }
+            client.getForecast("or/mt-hood-meadows")
+            assertEquals(listOf(3000L), recorder.times.zipWithNext { a, b -> b - a })
+        }
+
+    @Test
+    fun `an error carries the body's request id, doc URL and parameter`() =
+        runTest {
+            val (client, _) =
+                client { _, _ ->
+                    HttpResponse(
+                        400,
+                        mapOf("X-Request-Id" to listOf("from-header")),
+                        (
+                            """{"error":"BAD_REQUEST","message":"max_hours must be 1-240",""" +
+                                """"request_id":"from-body","param":"max_hours",""" +
+                                """"doc_url":"https://docs.oureawx.com/features/errors/#bad_request"}"""
+                        ).toByteArray(),
+                    )
+                }
+            val error = assertFailsWith<InvalidRequestException> { client.getForecast("or/mt-hood-meadows") }
+            assertEquals("from-body", error.requestId)
+            assertEquals("max_hours", error.param)
+            assertEquals("https://docs.oureawx.com/features/errors/#bad_request", error.docUrl)
+        }
+
+    @Test
+    fun `PRO_REQUIRED names the nearest location that answers without a key`() =
+        runTest {
+            val (client, _) =
+                client { _, _ ->
+                    HttpResponse(
+                        403,
+                        emptyMap(),
+                        (
+                            """{"error":"PRO_REQUIRED","message":"Pro","nearest_location":""" +
+                                """{"slug":"mt-hood-meadows","url":"/api/v1/locations/or/mt-hood-meadows",""" +
+                                """"distance_km":2.5,"elevation_m":1600}}"""
+                        ).toByteArray(),
+                    )
+                }
+            val error = assertFailsWith<PermissionException> { client.getPointForecast(45.33, -121.67) }
+            assertEquals("mt-hood-meadows", error.nearestLocation?.slug)
+            assertNull(error.param)
+        }
+
+    @Test
+    fun `retired codes map by status`() =
+        runTest {
+            val bodies =
+                listOf(
+                    403 to "FORBIDDEN",
+                    400 to "FEELS_LIKE_UNAVAILABLE",
+                    503 to "AUTH_UNAVAILABLE",
+                )
+            val (client, _) =
+                client({ maxRetries = 0 }) { _, n ->
+                    val (status, code) = bodies[n - 1]
+                    HttpResponse(status, emptyMap(), """{"error":"$code","message":"x"}""".toByteArray())
+                }
+            assertEquals("FORBIDDEN", assertFailsWith<PermissionException> { client.getForecast("or/x") }.code)
+            assertFailsWith<InvalidRequestException> { client.getForecast("or/x") }
+            assertFailsWith<UnavailableException> { client.getForecast("or/x") }
+        }
+
+    @Test
     fun `a 429 carries the rate-limit state and Retry-After`() =
         runTest {
             val (client, _) =

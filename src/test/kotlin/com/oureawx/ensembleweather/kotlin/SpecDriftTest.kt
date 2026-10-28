@@ -80,8 +80,8 @@ class SpecDriftTest {
                 c.getCatalogLocationsPage {
                     admin1 = "US-OR"
                     country = "US"
-                    type = "SkiArea"
-                    template = "Mountain"
+                    type = "ski_area"
+                    template = "mountain"
                     limit = 5
                     cursor = "c"
                 }
@@ -96,9 +96,9 @@ class SpecDriftTest {
                 c.getCatalogStationsPage {
                     admin1 = "US-OR"
                     country = "US"
-                    network = listOf("Snotel")
+                    network = listOf("snotel")
                     capability = listOf("swe", "air_temp")
-                    status = "Active"
+                    status = "active"
                     limit = 5
                     cursor = "c"
                 }
@@ -109,9 +109,7 @@ class SpecDriftTest {
                     locale = "es"
                 }
             },
-            "getAvailableRuns" to { c -> c.getRuns(limit = 5) },
-            "getStormReports" to { c -> c.getStormReports(limit = 5) },
-            "getStormReport" to { c -> c.getStormReport(1) },
+            "getAvailableRuns" to { c -> c.getRuns(limit = 5, cursor = "c") },
             "getAttribution" to { c -> c.getAttribution() },
         )
 
@@ -207,6 +205,10 @@ class SpecDriftTest {
 
                 name in required && !nullable && optionalInModel && !lenient(descriptor, where) -> {
                     problems += "$where: required in the spec, optional in the model"
+                }
+
+                nullable && !descriptor.getElementDescriptor(i).isNullable -> {
+                    problems += "$where: nullable in the spec, not nullable in the model"
                 }
             }
             val element = descriptor.getElementDescriptor(i)
@@ -393,7 +395,8 @@ class SpecDriftTest {
 
     private fun isNullable(schema: Map<String, Any?>): Boolean =
         (schema["type"] as? List<*>)?.contains("null") == true ||
-            (schema["anyOf"] as List<Map<String, Any?>>?)?.any { it["type"] == "null" } == true
+            (schema["anyOf"] as List<Map<String, Any?>>?)?.any { it["type"] == "null" } == true ||
+            (schema["\$ref"] as String?)?.let { isNullable(schemas.map(it.substringAfterLast('/'))) } == true
 
     private fun properties(schema: Map<String, Any?>): Map<String, Map<String, Any?>> =
         (schema["properties"] as Map<String, Map<String, Any?>>?).orEmpty()
@@ -460,8 +463,8 @@ class SpecDriftTest {
         sources = listOf("snotel")
         excludeSources = listOf("raws")
         nowcast = false
-        diagnostics = listOf("ptype")
-        feelsLike = listOf("utci")
+        diagnostics = listOf("provenance")
+        include = listOf("skin_temperature", "mslp")
         chance(Variable.Snowfall atLeast 1.inches within 24.hours)
         total(Variable.Snowfall totalWithin 48.hours)
     }
@@ -509,8 +512,6 @@ class SpecDriftTest {
                 "PublicCatalogStationDetail" to serializer<PublicCatalogStationDetail>(),
                 "AttributionRegistry" to serializer<AttributionRegistry>(),
                 "RunsResponse" to serializer<RunsResponse>(),
-                "StormReportsResponse" to serializer<StormReportsResponse>(),
-                "StormReportCard" to serializer<StormReportCard>(),
             )
 
         private val RESPONSE_SCHEMA =
@@ -522,14 +523,13 @@ class SpecDriftTest {
 
         /**
          * Deliberate differences, each with its reason. Every `Quantiles` field is optional
-         * (BEHAVIOR.md section 6: absent is never 0); `nowcast_hours` is required in the
-         * schema but documented as present only with `include=nowcast_hours`.
+         * (BEHAVIOR.md section 6: absent is never 0).
          */
+        @Suppress("UnusedParameter")
         private fun lenient(
             descriptor: SerialDescriptor,
             where: String,
-        ): Boolean =
-            descriptor.serialName.removeSuffix("?").endsWith(".Quantiles") || where == "CurrentResponse.nowcast_hours"
+        ): Boolean = descriptor.serialName.removeSuffix("?").endsWith(".Quantiles")
 
         /** Free-form JSON (`JsonElement`) and the `kind`-tagged FreezingLevel: checked by their own tests. */
         private val OPAQUE: Set<String> =
@@ -540,15 +540,9 @@ class SpecDriftTest {
             )
 
         /**
-         * Spec examples that break their own schema (reported to the spec repo), so no
-         * conforming model can read them: the abridged forecasts lack required fields
-         * and still use pre-v1 spellings (`location.elevation`, `type: skiArea`).
+         * Spec examples that break their own schema (report each to the spec repo), so no
+         * conforming model can read them. None at 8b85fea.
          */
-        private val INVALID_EXAMPLES =
-            setOf(
-                "getLocationForecast 200 dailyOnly",
-                "getLocationForecast 200 plumes",
-                "getPointForecast 200 point",
-            )
+        private val INVALID_EXAMPLES = emptySet<String>()
     }
 }

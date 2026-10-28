@@ -27,8 +27,6 @@ internal fun ApiResponse.attach(meta: ResponseMeta) {
         is PublicCatalogStationDetail -> this.meta = meta
         is AttributionRegistry -> this.meta = meta
         is RunsResponse -> this.meta = meta
-        is StormReportsResponse -> this.meta = meta
-        is StormReportCard -> this.meta = meta
     }
 }
 

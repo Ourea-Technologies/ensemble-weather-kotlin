@@ -56,10 +56,16 @@ public open class ForecastOptions internal constructor() {
     /** `true` (default): the live nowcast layer; `false`: the cacheable base forecast. */
     public var nowcast: Boolean? = null
 
-    /** Opt-in diagnostics: `provenance`, `ptype`. */
+    /** Opt-in diagnostics: `provenance` (each hour's post-processing tags). */
     public var diagnostics: List<String>? = null
 
-    /** Which feels-like indices to serve (default `nws`). */
+    /**
+     * Opt-in forecast variables: `mslp` ([EnsembleStats.mslp]) and `skin_temperature`
+     * ([EnsembleStats.skinTemperature]); neither by default. Sent sorted.
+     */
+    public var include: List<String>? = null
+
+    /** Which feels-like indices to serve: `nws`, the only one served, is the default. */
     public var feelsLike: List<String>? = null
 
     internal val probabilityTerms = mutableListOf<ProbabilityTerm>()
@@ -177,10 +183,10 @@ public class CatalogLocationOptions internal constructor() {
     /** An ISO 3166-1 country filter (`US`). */
     public var country: String? = null
 
-    /** A catalog type filter (`SkiArea`). */
+    /** A catalog type filter, snake_case (`ski_area`; see [LocationType]). */
     public var type: String? = null
 
-    /** A template variant filter (`Mountain`). */
+    /** A template variant filter, snake_case (`mountain`; see [TemplateVariant]). */
     public var template: String? = null
 
     /** Page size (1..100, default 20). */
@@ -199,13 +205,13 @@ public class CatalogStationOptions internal constructor() {
     /** An ISO 3166-1 country filter. */
     public var country: String? = null
 
-    /** Networks (`Snotel`, `Raws`). */
+    /** Networks, snake_case (`snotel`, `raws`; see [StationNetwork]). */
     public var network: List<String>? = null
 
     /** Capabilities every station must have (`swe`, `air_temp`). */
     public var capability: List<String>? = null
 
-    /** A status filter (`Active`). */
+    /** A status filter, snake_case (`active`; see [StationStatus]). */
     public var status: String? = null
 
     /** Page size (1..100, default 20). */
@@ -218,7 +224,7 @@ public class CatalogStationOptions internal constructor() {
 /** Options for a catalog detail ([EnsembleWeather.getCatalogLocation], [EnsembleWeather.getCatalogStation]). */
 @EnsembleWeatherDsl
 public class CatalogDetailOptions internal constructor() {
-    /** Opt-in extras: `content`, `template`, `ads`. */
+    /** Opt-in extras: `content`, `template`. */
     public var include: List<String>? = null
 
     /** The BCP-47 locale for content (default `en`). */

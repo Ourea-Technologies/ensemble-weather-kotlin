@@ -546,6 +546,18 @@ public value class ConditionIcon(
         /** `night_freezing_rain` */
         public val NightFreezingRain: ConditionIcon = ConditionIcon("night_freezing_rain")
 
+        /** `night_chance_rain` */
+        public val NightChanceRain: ConditionIcon = ConditionIcon("night_chance_rain")
+
+        /** `night_rain_likely` */
+        public val NightRainLikely: ConditionIcon = ConditionIcon("night_rain_likely")
+
+        /** `night_showers` */
+        public val NightShowers: ConditionIcon = ConditionIcon("night_showers")
+
+        /** `night_moon_showers` */
+        public val NightMoonShowers: ConditionIcon = ConditionIcon("night_moon_showers")
+
         /** Every value this SDK version knows. */
         public val entries: List<ConditionIcon> =
             listOf(
@@ -583,13 +595,18 @@ public value class ConditionIcon(
                 NightRainSnowMix,
                 NightSnow,
                 NightFreezingRain,
+                NightChanceRain,
+                NightRainLikely,
+                NightShowers,
+                NightMoonShowers,
             )
         private val known: Set<ConditionIcon> = entries.toSet()
     }
 }
 
 /**
- * A precipitation type: an hour's or day's `precip_type`, or a day's `precip_display.kind` (which adds [None]).
+ * A precipitation type: an hour's or day's `precipitation_type`, or a day's
+ * `precipitation_display.kind` (which adds [None]).
  *
  * An open enum: a value this SDK version does not know parses with `isKnown == false`
  * and keeps the raw string in [value].
@@ -1035,5 +1052,434 @@ public value class SourceKind(
         public val entries: List<SourceKind> =
             listOf(Model, Peer, Observation, Alerts, Climatology, Terrain, Places, Basemap)
         private val known: Set<SourceKind> = entries.toSet()
+    }
+}
+
+/**
+ * Why a probability or a window total is `null` (BEHAVIOR.md sections 4 and 5).
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class NullReason(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `window_not_covered` */
+        public val WindowNotCovered: NullReason = NullReason("window_not_covered")
+
+        /** `too_few_members` */
+        public val TooFewMembers: NullReason = NullReason("too_few_members")
+
+        /** `variable_unavailable` */
+        public val VariableUnavailable: NullReason = NullReason("variable_unavailable")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<NullReason> =
+            listOf(WindowNotCovered, TooFewMembers, VariableUnavailable)
+        private val known: Set<NullReason> = entries.toSet()
+    }
+}
+
+/**
+ * How a window total reads its window: [Total] for an amount (the only one this SDK asks for).
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class TotalAggregation(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `total` */
+        public val Total: TotalAggregation = TotalAggregation("total")
+
+        /** `min` */
+        public val Min: TotalAggregation = TotalAggregation("min")
+
+        /** `max` */
+        public val Max: TotalAggregation = TotalAggregation("max")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<TotalAggregation> =
+            listOf(Total, Min, Max)
+        private val known: Set<TotalAggregation> = entries.toSet()
+    }
+}
+
+/**
+ * The CAP severity of an alert.
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class AlertSeverity(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `extreme` */
+        public val Extreme: AlertSeverity = AlertSeverity("extreme")
+
+        /** `severe` */
+        public val Severe: AlertSeverity = AlertSeverity("severe")
+
+        /** `moderate` */
+        public val Moderate: AlertSeverity = AlertSeverity("moderate")
+
+        /** `minor` */
+        public val Minor: AlertSeverity = AlertSeverity("minor")
+
+        /** `unknown` */
+        public val Unknown: AlertSeverity = AlertSeverity("unknown")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<AlertSeverity> =
+            listOf(Extreme, Severe, Moderate, Minor, Unknown)
+        private val known: Set<AlertSeverity> = entries.toSet()
+    }
+}
+
+/**
+ * The CAP urgency of an alert.
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class AlertUrgency(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `immediate` */
+        public val Immediate: AlertUrgency = AlertUrgency("immediate")
+
+        /** `expected` */
+        public val Expected: AlertUrgency = AlertUrgency("expected")
+
+        /** `future` */
+        public val Future: AlertUrgency = AlertUrgency("future")
+
+        /** `past` */
+        public val Past: AlertUrgency = AlertUrgency("past")
+
+        /** `unknown` */
+        public val Unknown: AlertUrgency = AlertUrgency("unknown")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<AlertUrgency> =
+            listOf(Immediate, Expected, Future, Past, Unknown)
+        private val known: Set<AlertUrgency> = entries.toSet()
+    }
+}
+
+/**
+ * The CAP certainty of an alert.
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class AlertCertainty(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `observed` */
+        public val Observed: AlertCertainty = AlertCertainty("observed")
+
+        /** `likely` */
+        public val Likely: AlertCertainty = AlertCertainty("likely")
+
+        /** `possible` */
+        public val Possible: AlertCertainty = AlertCertainty("possible")
+
+        /** `unlikely` */
+        public val Unlikely: AlertCertainty = AlertCertainty("unlikely")
+
+        /** `unknown` */
+        public val Unknown: AlertCertainty = AlertCertainty("unknown")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<AlertCertainty> =
+            listOf(Observed, Likely, Possible, Unlikely, Unknown)
+        private val known: Set<AlertCertainty> = entries.toSet()
+    }
+}
+
+/**
+ * The observation network of a catalog station (`snotel`, `rwis_wsdot`).
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class StationNetwork(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `snotel` */
+        public val Snotel: StationNetwork = StationNetwork("snotel")
+
+        /** `snolite` */
+        public val Snolite: StationNetwork = StationNetwork("snolite")
+
+        /** `raws` */
+        public val Raws: StationNetwork = StationNetwork("raws")
+
+        /** `asos` */
+        public val Asos: StationNetwork = StationNetwork("asos")
+
+        /** `awos` */
+        public val Awos: StationNetwork = StationNetwork("awos")
+
+        /** `metar` */
+        public val Metar: StationNetwork = StationNetwork("metar")
+
+        /** `rwis_wsdot` */
+        public val RwisWsdot: StationNetwork = StationNetwork("rwis_wsdot")
+
+        /** `rwis_odot` */
+        public val RwisOdot: StationNetwork = StationNetwork("rwis_odot")
+
+        /** `rwis_caltrans` */
+        public val RwisCaltrans: StationNetwork = StationNetwork("rwis_caltrans")
+
+        /** `rwis_idot` */
+        public val RwisIdot: StationNetwork = StationNetwork("rwis_idot")
+
+        /** `rwis_ndot` */
+        public val RwisNdot: StationNetwork = StationNetwork("rwis_ndot")
+
+        /** `rwis_udot` */
+        public val RwisUdot: StationNetwork = StationNetwork("rwis_udot")
+
+        /** `rwis_cdot` */
+        public val RwisCdot: StationNetwork = StationNetwork("rwis_cdot")
+
+        /** `rwis_mdt` */
+        public val RwisMdt: StationNetwork = StationNetwork("rwis_mdt")
+
+        /** `rwis_wydot` */
+        public val RwisWydot: StationNetwork = StationNetwork("rwis_wydot")
+
+        /** `rwis_other` */
+        public val RwisOther: StationNetwork = StationNetwork("rwis_other")
+
+        /** `agrimet` */
+        public val Agrimet: StationNetwork = StationNetwork("agrimet")
+
+        /** `agweathernet` */
+        public val Agweathernet: StationNetwork = StationNetwork("agweathernet")
+
+        /** `cocorahs` */
+        public val Cocorahs: StationNetwork = StationNetwork("cocorahs")
+
+        /** `coop` */
+        public val Coop: StationNetwork = StationNetwork("coop")
+
+        /** `usgs` */
+        public val Usgs: StationNetwork = StationNetwork("usgs")
+
+        /** `tempest` */
+        public val Tempest: StationNetwork = StationNetwork("tempest")
+
+        /** `davis` */
+        public val Davis: StationNetwork = StationNetwork("davis")
+
+        /** `wxflow` */
+        public val Wxflow: StationNetwork = StationNetwork("wxflow")
+
+        /** `cdec` */
+        public val Cdec: StationNetwork = StationNetwork("cdec")
+
+        /** `cimis` */
+        public val Cimis: StationNetwork = StationNetwork("cimis")
+
+        /** `mesonet_oregon` */
+        public val MesonetOregon: StationNetwork = StationNetwork("mesonet_oregon")
+
+        /** `mesonet_synoptic` */
+        public val MesonetSynoptic: StationNetwork = StationNetwork("mesonet_synoptic")
+
+        /** `mesonet_other` */
+        public val MesonetOther: StationNetwork = StationNetwork("mesonet_other")
+
+        /** `ndbc_buoy` */
+        public val NdbcBuoy: StationNetwork = StationNetwork("ndbc_buoy")
+
+        /** `other` */
+        public val Other: StationNetwork = StationNetwork("other")
+
+        /** `hads` */
+        public val Hads: StationNetwork = StationNetwork("hads")
+
+        /** `madis` */
+        public val Madis: StationNetwork = StationNetwork("madis")
+
+        /** `nwac` */
+        public val Nwac: StationNetwork = StationNetwork("nwac")
+
+        /** `mt_mesonet` */
+        public val MtMesonet: StationNetwork = StationNetwork("mt_mesonet")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<StationNetwork> =
+            listOf(
+                Snotel,
+                Snolite,
+                Raws,
+                Asos,
+                Awos,
+                Metar,
+                RwisWsdot,
+                RwisOdot,
+                RwisCaltrans,
+                RwisIdot,
+                RwisNdot,
+                RwisUdot,
+                RwisCdot,
+                RwisMdt,
+                RwisWydot,
+                RwisOther,
+                Agrimet,
+                Agweathernet,
+                Cocorahs,
+                Coop,
+                Usgs,
+                Tempest,
+                Davis,
+                Wxflow,
+                Cdec,
+                Cimis,
+                MesonetOregon,
+                MesonetSynoptic,
+                MesonetOther,
+                NdbcBuoy,
+                Other,
+                Hads,
+                Madis,
+                Nwac,
+                MtMesonet,
+            )
+        private val known: Set<StationNetwork> = entries.toSet()
+    }
+}
+
+/**
+ * The reporting status of a catalog station.
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class StationStatus(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `active` */
+        public val Active: StationStatus = StationStatus("active")
+
+        /** `intermittent` */
+        public val Intermittent: StationStatus = StationStatus("intermittent")
+
+        /** `inactive` */
+        public val Inactive: StationStatus = StationStatus("inactive")
+
+        /** `decommissioned` */
+        public val Decommissioned: StationStatus = StationStatus("decommissioned")
+
+        /** `unknown` */
+        public val Unknown: StationStatus = StationStatus("unknown")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<StationStatus> =
+            listOf(Active, Intermittent, Inactive, Decommissioned, Unknown)
+        private val known: Set<StationStatus> = entries.toSet()
+    }
+}
+
+/**
+ * The variant of a catalog page template.
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class TemplateVariant(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `mountain` */
+        public val Mountain: TemplateVariant = TemplateVariant("mountain")
+
+        /** `coastal` */
+        public val Coastal: TemplateVariant = TemplateVariant("coastal")
+
+        /** `trail` */
+        public val Trail: TemplateVariant = TemplateVariant("trail")
+
+        /** `pass` */
+        public val Pass: TemplateVariant = TemplateVariant("pass")
+
+        /** `generic` */
+        public val Generic: TemplateVariant = TemplateVariant("generic")
+
+        /** `station` */
+        public val Station: TemplateVariant = TemplateVariant("station")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<TemplateVariant> =
+            listOf(Mountain, Coastal, Trail, Pass, Generic, Station)
+        private val known: Set<TemplateVariant> = entries.toSet()
     }
 }

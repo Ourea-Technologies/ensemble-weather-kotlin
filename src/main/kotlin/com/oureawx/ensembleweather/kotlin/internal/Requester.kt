@@ -7,10 +7,12 @@ import com.oureawx.ensembleweather.kotlin.BodyTooLargeException
 import com.oureawx.ensembleweather.kotlin.CachedResponse
 import com.oureawx.ensembleweather.kotlin.ConnectionException
 import com.oureawx.ensembleweather.kotlin.DeprecationNotice
+import com.oureawx.ensembleweather.kotlin.EnsembleWeather
 import com.oureawx.ensembleweather.kotlin.HttpRequest
 import com.oureawx.ensembleweather.kotlin.HttpResponse
 import com.oureawx.ensembleweather.kotlin.HttpTransport
 import com.oureawx.ensembleweather.kotlin.InvalidRequestException
+import com.oureawx.ensembleweather.kotlin.NearestLocation
 import com.oureawx.ensembleweather.kotlin.NotFoundException
 import com.oureawx.ensembleweather.kotlin.OutsideCoverageException
 import com.oureawx.ensembleweather.kotlin.PermissionException
@@ -24,7 +26,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.io.IOException
@@ -261,7 +265,7 @@ internal class Requester(
         response: HttpResponse,
         retry: Int,
     ): Duration? {
-        if (response.status == TOO_MANY_REQUESTS || response.status == SERVICE_UNAVAILABLE) {
+        if (response.status in HONOURS_RETRY_AFTER) {
             val after = retryAfter(response)
             if (after != null) return if (after > MAX_RETRY_AFTER) null else after
         }
@@ -286,31 +290,82 @@ internal class Requester(
         limits: RateLimit?,
     ): ApiException {
         val body = parseError(response.body)
-        val code = body?.first
+        val code = body?.code
         val status = response.status
-        val message = body?.second?.takeIf { it.isNotBlank() } ?: "HTTP $status"
-        val requestId = response.header(REQUEST_ID)
+        val message = body?.message?.takeIf { it.isNotBlank() } ?: "HTTP $status"
+        val requestId = body?.requestId ?: response.header(REQUEST_ID)
+        val doc = body?.docUrl
+        val param = body?.param
         return when (Category.of(code, status)) {
-            Category.Authentication -> AuthenticationException(status, code, message, requestId, limits)
-            Category.Permission -> PermissionException(status, code, message, requestId, limits)
-            Category.NotFound -> NotFoundException(status, code, message, requestId, limits)
-            Category.OutsideCoverage -> OutsideCoverageException(status, code, message, requestId, limits)
-            Category.RateLimited -> RateLimitException(status, code, message, requestId, limits, retryAfter(response))
-            Category.Unavailable -> UnavailableException(status, code, message, requestId, limits)
-            Category.InvalidRequest -> InvalidRequestException(status, code, message, requestId, limits)
+            Category.Authentication -> {
+                AuthenticationException(status, code, message, requestId, limits, doc, param)
+            }
+
+            Category.Permission -> {
+                PermissionException(status, code, message, requestId, limits, doc, param, body?.nearestLocation)
+            }
+
+            Category.NotFound -> {
+                NotFoundException(status, code, message, requestId, limits, doc, param)
+            }
+
+            Category.OutsideCoverage -> {
+                OutsideCoverageException(status, code, message, requestId, limits, doc, param)
+            }
+
+            Category.RateLimited -> {
+                RateLimitException(status, code, message, requestId, limits, retryAfter(response), doc, param)
+            }
+
+            Category.Unavailable -> {
+                UnavailableException(status, code, message, requestId, limits, doc, param)
+            }
+
+            Category.InvalidRequest -> {
+                InvalidRequestException(status, code, message, requestId, limits, doc, param)
+            }
         }
     }
 
-    private fun parseError(body: ByteArray): Pair<String, String>? {
+    /** The JSON error envelope (`ErrorResponse`). */
+    private class ErrorBody(
+        val code: String,
+        val message: String,
+        val requestId: String?,
+        val docUrl: String?,
+        val param: String?,
+        val nearestLocation: NearestLocation?,
+    )
+
+    private fun parseError(body: ByteArray): ErrorBody? {
         if (body.isEmpty()) return null
         return try {
             val obj = Json.parseToJsonElement(body.toString(Charsets.UTF_8)) as? JsonObject ?: return null
-            val code = (obj["error"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return null
-            code to (obj["message"] as? JsonPrimitive)?.content.orEmpty()
+
+            fun text(key: String) = (obj[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            val code = text("error") ?: return null
+            ErrorBody(
+                code = code,
+                message = (obj["message"] as? JsonPrimitive)?.content.orEmpty(),
+                requestId = text("request_id"),
+                docUrl = text("doc_url"),
+                param = text("param"),
+                nearestLocation = nearestLocation(obj["nearest_location"]),
+            )
         } catch (_: IllegalArgumentException) {
             null
         }
     }
+
+    /** A malformed `nearest_location` never hides the error itself. */
+    private fun nearestLocation(value: JsonElement?): NearestLocation? =
+        (value as? JsonObject)?.let {
+            try {
+                EnsembleWeather.JSON.decodeFromJsonElement(NearestLocation.serializer(), it)
+            } catch (_: SerializationException) {
+                null
+            }
+        }
 
     /** A failed attempt and whether it may be retried. */
     private class Failure(
@@ -335,24 +390,19 @@ internal class Requester(
                     "INVALID_API_KEY" to Authentication,
                     "UNAUTHORIZED" to Authentication,
                     "PRO_REQUIRED" to Permission,
-                    "FORBIDDEN" to Permission,
                     "LOCATION_NOT_FOUND" to NotFound,
-                    "MODEL_RUN_NOT_FOUND" to NotFound,
                     "NOT_FOUND" to NotFound,
-                    "GONE" to NotFound,
                     "BAD_REQUEST" to InvalidRequest,
                     "INVALID_COORDINATES" to InvalidRequest,
                     "INVALID_ELEVATION" to InvalidRequest,
-                    "INVALID_MAX_HOURS" to InvalidRequest,
                     "ELEVATION_REQUIRED" to InvalidRequest,
-                    "AMBIGUOUS" to InvalidRequest,
-                    "FEELS_LIKE_UNAVAILABLE" to InvalidRequest,
                     "OUTSIDE_COVERAGE" to OutsideCoverage,
                     "TOO_MANY_REQUESTS" to RateLimited,
                     "FORECAST_UNAVAILABLE" to Unavailable,
                     "TIMEOUT" to Unavailable,
                     "INTERNAL_ERROR" to Unavailable,
                     "DATABASE_ERROR" to Unavailable,
+                    "AUTH_UNAVAILABLE" to Unavailable,
                 )
 
             @Suppress("MagicNumber")
@@ -374,8 +424,7 @@ internal class Requester(
     companion object {
         private val SUCCESS = 200..299
         private const val NOT_MODIFIED = 304
-        private const val TOO_MANY_REQUESTS = 429
-        private const val SERVICE_UNAVAILABLE = 503
+        private val HONOURS_RETRY_AFTER = setOf(429, 503, 504)
         private val RETRYABLE = setOf(429, 502, 503, 504)
         private val REDIRECTS = setOf(301, 302, 307, 308)
         private const val MAX_REDIRECTS = 5

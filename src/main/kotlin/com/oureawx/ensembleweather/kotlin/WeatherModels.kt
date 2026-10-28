@@ -45,10 +45,12 @@ public data class ActiveAlert(
     public val id: String,
     /** The event (`Winter Storm Warning`). */
     public val event: String,
-    /** The NWS severity. */
-    public val severity: String,
-    /** The NWS urgency. */
-    public val urgency: String,
+    /** The CAP severity (`severe`). */
+    public val severity: AlertSeverity,
+    /** The CAP urgency (`expected`). */
+    public val urgency: AlertUrgency,
+    /** The CAP certainty (`likely`). */
+    public val certainty: AlertCertainty,
     /** The headline text. */
     public val headline: String,
     /** When it expires (ISO 8601). */
@@ -87,7 +89,7 @@ public data class SensorObservation(
     /** The last reporting period's precipitation. */
     public val precipitation: Double? = null,
     /** Radar precipitation rate, per hour. */
-    @SerialName("precip_rate") public val precipRate: Double? = null,
+    @SerialName("precipitation_rate") public val precipitationRate: Double? = null,
     /** Radar reflectivity, dBZ. */
     public val reflectivity: Double? = null,
     /** Pavement temperature. */
@@ -347,6 +349,8 @@ public data class RunsResponse(
     public val runs: List<RunInfo>,
     /** How many runs. */
     public val count: Int,
+    /** The cursor for older runs ([EnsembleWeather.getRuns]); `null` on the last page. */
+    @SerialName("next_cursor") public val nextCursor: String? = null,
 ) : ApiResponse {
     @Transient
     override var meta: ResponseMeta = ResponseMeta.None
@@ -369,50 +373,18 @@ public data class RunInfo(
     @SerialName("initialized_at") public val initializedAt: String,
 )
 
-/** Storm report cards, most recent onset first. */
+/**
+ * On a `PRO_REQUIRED` from a coordinate route, the nearest named location whose
+ * forecast answers without a key ([PermissionException.nearestLocation]).
+ */
 @Serializable
-public data class StormReportsResponse(
-    /** The cards. */
-    public val reports: List<StormReportCard>,
-    /** How many. */
-    public val count: Int,
-) : ApiResponse {
-    @Transient
-    override var meta: ResponseMeta = ResponseMeta.None
-        internal set
-}
-
-/** A verified storm event: forecast against observed totals, with a skill score. */
-@Serializable
-public data class StormReportCard(
-    /** The card id. */
-    public val id: Long,
-    /** The location's name. */
-    @SerialName("location_name") public val locationName: String,
-    /** The precipitation regime (`snowfall`, `rainfall`, ...). */
-    @SerialName("event_type") public val eventType: String,
-    /** Onset (ISO 8601). */
-    @SerialName("onset_time") public val onsetTime: String,
-    /** End (ISO 8601). */
-    @SerialName("end_time") public val endTime: String,
-    /** The forecast total, mm. */
-    @SerialName("forecast_total_mm") public val forecastTotalMm: Double,
-    /** The observed total, mm. */
-    @SerialName("observed_total_mm") public val observedTotalMm: Double,
-    /** The forecast snowfall, mm. */
-    @SerialName("forecast_snowfall_mm") public val forecastSnowfallMm: Double? = null,
-    /** The observed snowfall, mm. */
-    @SerialName("observed_snowfall_mm") public val observedSnowfallMm: Double? = null,
-    /** The best-scoring model. */
-    @SerialName("best_model") public val bestModel: String? = null,
-    /** Its lead time, hours. */
-    @SerialName("best_lead_time_hours") public val bestLeadTimeHours: Int? = null,
-    /** A 0..1 skill score (higher is better). */
-    @SerialName("composite_score") public val compositeScore: Double? = null,
-    /** A display headline. */
-    public val headline: String? = null,
-) : ApiResponse {
-    @Transient
-    override var meta: ResponseMeta = ResponseMeta.None
-        internal set
-}
+public data class NearestLocation(
+    /** The location's slug. */
+    public val slug: String,
+    /** Its forecast's path on this API (`/api/v1/locations/or/mt-hood-meadows`). */
+    public val url: String,
+    /** Distance from the requested point, km. */
+    @SerialName("distance_km") public val distanceKm: Double,
+    /** Its elevation, metres. */
+    @SerialName("elevation_m") public val elevationM: Double,
+)

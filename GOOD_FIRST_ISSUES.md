@@ -23,12 +23,11 @@ copying it, keeping the core free of OkHttp.
 `MockWebServer` (redirects not followed, body bounded with `HttpTransport.readBounded`,
 `X-API-Key` redacted from logging), and CONTRIBUTING documents the module.
 
-## 3. Examples for the storm reports and model runs
+## 3. An example for the model runs
 
-**What:** an `examples/StormReports.kt` that prints the latest storm report cards
-(`getStormReports(limit = 5)`, forecast against observed totals) and the runs a
-Pro forecast can pin (`getRuns()`).
+**What:** an `examples/ModelRuns.kt` that prints the runs a Pro forecast can pin
+(`getRuns()`, following `nextCursor` for older ones) and what a forecast serves now.
 
-**Done when:** the mock serves `/api/v1/storm-reports` and `/api/v1/runs` with
-bodies that match the schemas, `./gradlew runExamples` passes, and the example is
+**Done when:** the mock serves `/api/v1/runs` with a body that matches the
+schema, `./gradlew runExamples` passes, and the example is
 in the README's table.

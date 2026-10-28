@@ -79,8 +79,11 @@ public data class QuantileRange(
 /** The one location reference, the same wherever a place is named. */
 @Serializable
 public data class LocationRef(
-    /** The catalog slug: with [state], the location's address. */
-    public val slug: String,
+    /**
+     * The catalog slug: with [state], the location's address. `null` for a coordinate
+     * forecast that is not at a catalog location.
+     */
+    public val slug: String? = null,
     /** The lowercase USPS state code. */
     public val state: String,
     /** The display name. */
@@ -91,8 +94,8 @@ public data class LocationRef(
     public val lon: Double,
     /** Elevation in metres, whatever the units. */
     @SerialName("elevation_m") public val elevationM: Double,
-    /** The primary location type. */
-    public val type: LocationType,
+    /** The primary location type; `null` for a coordinate forecast that is not at a catalog location. */
+    public val type: LocationType? = null,
     /** The IANA time zone the location's local days are kept in. */
     public val timezone: String,
 )

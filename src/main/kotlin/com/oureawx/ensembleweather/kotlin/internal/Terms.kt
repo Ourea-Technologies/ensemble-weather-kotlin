@@ -18,10 +18,9 @@ import kotlin.math.abs
 import kotlin.math.sign
 import kotlin.math.truncate
 
-/** One term in canonical form: its wire string plus the key its answer is matched by. */
+/** One term in canonical form: its wire string, which its answer echoes as `term`. */
 internal class CanonicalTerm(
     val wire: String,
-    val key: String,
     val sortKey: List<Comparable<*>>,
 ) {
     companion object {
@@ -90,7 +89,6 @@ internal object Terms {
         val suffix = if (aggregation == default) "" else ":${aggregation.value}"
         return CanonicalTerm(
             wire = "${variable.value}:${term.op.value}:$threshold:$window$suffix",
-            key = key(variable, term.op.value, threshold, term.window, aggregation),
             sortKey =
                 listOf(
                     variable.value,
@@ -110,18 +108,9 @@ internal object Terms {
         validate(term.window)
         return CanonicalTerm(
             wire = "${term.variable.value}:${term.window}",
-            key = "${term.variable.value}|${term.window.startHours}|${term.window.endHours}",
             sortKey = listOf(term.variable.value, term.window.startHours, term.window.endHours),
         )
     }
-
-    private fun key(
-        variable: Variable,
-        op: String,
-        threshold: String,
-        window: Window,
-        aggregation: Aggregation,
-    ) = "${variable.value}|$op|$threshold|${window.startHours}|${window.endHours}|${aggregation.value}"
 
     private fun validate(window: Window) {
         if (window.startHours < 0 || window.endHours <= window.startHours || window.endHours > Window.MAX_HOURS) {
@@ -132,34 +121,30 @@ internal object Terms {
         }
     }
 
-    /** Maps the server's answers (in sent order) back to the caller's terms (BEHAVIOR.md section 4). */
+    /**
+     * Maps the server's answers back to the caller's terms by the `term` each one echoes,
+     * never by position (BEHAVIOR.md section 4).
+     */
     fun mapProbabilities(
         terms: CanonicalTerms,
         results: List<ProbabilityResult>?,
-        units: Units,
     ): List<ProbabilityResult>? {
         if (results == null) return null
-        val byKey =
-            results.associateBy {
-                val decimals = if (it.variable.isKnown) precision(it.variable, units) else 0
-                val threshold =
-                    formatScaled(roundHalfAwayFromZero(it.threshold * Math.pow(TEN, decimals.toDouble())), decimals)
-                key(it.variable, it.op.value, threshold, Window(it.windowStartHours, it.windowEndHours), it.aggregation)
-            }
+        val byTerm = results.associateBy { it.term }
         return terms.callerOrder.map {
-            byKey[it.key] ?: throw ResponseFormatException("the response has no answer for prob term '${it.wire}'")
+            byTerm[it.wire] ?: throw ResponseFormatException("the response has no answer for prob term '${it.wire}'")
         }
     }
 
-    /** Maps the server's window totals back to the caller's terms. */
+    /** Maps the server's window totals back to the caller's terms by `term` (BEHAVIOR.md section 5). */
     fun mapTotals(
         terms: CanonicalTerms,
         results: List<WindowTotal>?,
     ): List<WindowTotal>? {
         if (results == null) return null
-        val byKey = results.associateBy { "${it.variable.value}|${it.windowStartHours}|${it.windowEndHours}" }
+        val byTerm = results.associateBy { it.term }
         return terms.callerOrder.map {
-            byKey[it.key] ?: throw ResponseFormatException("the response has no answer for totals term '${it.wire}'")
+            byTerm[it.wire] ?: throw ResponseFormatException("the response has no answer for totals term '${it.wire}'")
         }
     }
 

@@ -123,8 +123,12 @@ probability from them: the server computes every probability and window total
 from the full ensemble (summing hourly quantiles gives a wrong storm total).
 A threshold in another unit (`6.inches` on a metric request) is converted
 exactly before sending; response values are always in the request's units.
-Answers come back in the order you asked, and a `null` probability means the
-forecast does not reach the window's end, never 0. More at
+Answers are matched to your terms by the `term` the server echoes and come back
+in the order you asked; a `null` probability is never 0, and its `nullReason`
+says why (`window_not_covered`, `too_few_members`, `variable_unavailable`). Wind
+direction is circular: each hour's `ensemble.windDirection` is a `CircularStats`
+(mean, spread and the clockwise 50 % and 90 % sectors, whose `to` may be less
+than `from`), not quantiles. More at
 [docs.oureawx.com/concepts/probabilities](https://docs.oureawx.com/concepts/probabilities).
 
 ## More examples
@@ -148,15 +152,18 @@ serve the mock with `./gradlew :mock-server:run` and point an example at it with
 
 Every error is an `EnsembleWeatherException`, a sealed hierarchy you can catch by
 type or `when` over. HTTP errors are `ApiException`s carrying `status`, `code`
-(verbatim, even when new), `message`, `requestId` and `rateLimit`:
+(verbatim, even when new), `message`, `requestId`, `rateLimit`, `docUrl` (the
+code's entry on the docs errors page) and, on a 400 about one parameter, `param`;
+a `PRO_REQUIRED` from a coordinate route may name a `nearestLocation` that
+answers without a key:
 
 | Type                        | When                                                                 |
 | --------------------------- | -------------------------------------------------------------------- |
 | `AuthenticationException`   | invalid or missing key (401)                                         |
 | `PermissionException`       | your plan does not allow it, e.g. `PRO_REQUIRED` (403)               |
-| `NotFoundException`         | no such location, run or report (404, 410)                           |
+| `NotFoundException`         | no such location or route (404, 410)                                 |
 | `InvalidRequestException`   | the server rejected a parameter (400)                                |
-| `OutsideCoverageException`  | `OUTSIDE_COVERAGE`: the point is outside the domain                  |
+| `OutsideCoverageException`  | `OUTSIDE_COVERAGE` (404): the point is outside the domain            |
 | `RateLimitException`        | over a budget (429); `retryAfter` says how long to wait              |
 | `UnavailableException`      | the server could not answer (5xx)                                    |
 | `ConnectionException`       | no response: DNS, TLS, reset, or the 30 s per-attempt timeout        |
@@ -172,8 +179,8 @@ try {
 ```
 
 Connection errors (except TLS verification failures), 429, 502, 503 and 504 are
-retried up to `maxRetries` (default 2) times, waiting exactly `Retry-After` when
-the server sends one of 60 s or less (more than that is thrown at once), else
+retried up to `maxRetries` (default 2) times, waiting exactly `Retry-After` (sent
+on 429, 503 and 504) when the server sends one of 60 s or less (more than that is thrown at once), else
 full-jitter backoff from 0.5 s up to 8 s. Nothing else is retried. Cancelling the
 calling coroutine cancels the request and any wait.
 

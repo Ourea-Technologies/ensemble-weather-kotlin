@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpServer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
@@ -157,13 +158,16 @@ class MockServer(
                         val (start, end) = window(window)
                         add(
                             buildJsonObject {
+                                put("term", term)
                                 put("variable", variable)
                                 put("window_start_hours", start)
                                 put("window_end_hours", end)
+                                put("aggregation", "total")
                                 put("from", "2026-11-15T00:00:00Z")
                                 put("to", "2026-11-17T00:00:00Z")
                                 put("quantiles", canned)
                                 put("members", MEMBERS)
+                                put("null_reason", JsonNull)
                             },
                         )
                     }
@@ -182,6 +186,7 @@ class MockServer(
         val (start, end) = window(parts.getOrNull(3) ?: "24h")
         val amount = variable == "precipitation" || variable == "snowfall"
         return buildJsonObject {
+            put("term", term)
             put("variable", variable)
             put("op", parts[1])
             put("threshold", parts[2].toDouble())
@@ -192,6 +197,7 @@ class MockServer(
             put("to", "2026-11-16T00:00:00Z")
             put("probability", CANNED[index % CANNED.size])
             put("members", MEMBERS)
+            put("null_reason", JsonNull)
         }
     }
 
@@ -230,8 +236,9 @@ class MockServer(
                 buildJsonObject {
                     put("id", "urn:oid:2.49.0.1.840.0.mock")
                     put("event", "Winter Storm Warning")
-                    put("severity", "Severe")
-                    put("urgency", "Expected")
+                    put("severity", "severe")
+                    put("urgency", "expected")
+                    put("certainty", "likely")
                     put("headline", "Winter Storm Warning until Sunday 4 PM (mock)")
                     put("expires", "2026-11-16T00:00:00Z")
                 },
@@ -292,6 +299,8 @@ class MockServer(
     ) = buildJsonObject {
         put("error", code)
         put("message", message)
+        put("request_id", "mock-request")
+        put("doc_url", "https://docs.oureawx.com/features/errors/#${code.lowercase()}")
     }
 
     private fun parseQuery(raw: String): Map<String, List<String>> =
