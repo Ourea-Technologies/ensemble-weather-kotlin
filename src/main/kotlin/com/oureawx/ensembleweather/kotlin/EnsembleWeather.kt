@@ -215,7 +215,7 @@ public class EnsembleWeather private constructor(
     }
 
     /** Current conditions at a point, with an optional elevation in metres (Pro). */
-    public suspend fun getCurrentAt(
+    public suspend fun getPointCurrent(
         lat: Double,
         lon: Double,
         elevationM: Double? = null,
@@ -255,7 +255,7 @@ public class EnsembleWeather private constructor(
     }
 
     /** Active NWS alerts at a point (Pro). */
-    public suspend fun getAlertsAt(
+    public suspend fun getPointAlerts(
         lat: Double,
         lon: Double,
     ): AlertsResponse {
@@ -286,7 +286,7 @@ public class EnsembleWeather private constructor(
     }
 
     /** The nearest public locations to a point. */
-    public suspend fun getNearbyAt(
+    public suspend fun getPointNearby(
         lat: Double,
         lon: Double,
         options: NearbyOptions.() -> Unit = {},

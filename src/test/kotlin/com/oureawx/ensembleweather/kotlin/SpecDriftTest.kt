@@ -61,11 +61,11 @@ class SpecDriftTest {
             },
             "getPointForecast" to { c -> c.getPointForecast(1.0, 2.0, 3.0) { allForecastOptions() } },
             "getCurrentConditions" to { c -> c.getCurrent("or/x") { allCurrentOptions() } },
-            "getCurrentByCoordinates" to { c -> c.getCurrentAt(1.0, 2.0, 3.0) { allCurrentOptions() } },
+            "getCurrentByCoordinates" to { c -> c.getPointCurrent(1.0, 2.0, 3.0) { allCurrentOptions() } },
             "getLocationAlerts" to { c -> c.getAlerts("or/x") },
-            "getAlertsByCoordinates" to { c -> c.getAlertsAt(1.0, 2.0) },
+            "getAlertsByCoordinates" to { c -> c.getPointAlerts(1.0, 2.0) },
             "getNearbyLocations" to { c -> c.getNearby("or/x") { allNearbyOptions() } },
-            "getNearbyByCoordinates" to { c -> c.getNearbyAt(1.0, 2.0) { allNearbyOptions() } },
+            "getNearbyByCoordinates" to { c -> c.getPointNearby(1.0, 2.0) { allNearbyOptions() } },
             "searchLocations" to { c ->
                 c.searchLocations("hood") {
                     state = "or"

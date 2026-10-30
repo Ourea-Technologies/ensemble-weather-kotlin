@@ -7,7 +7,7 @@ released. Each is small, self-contained and has a clear "done".
 
 **What:** a runnable example that lists a location's nearest neighbours with
 `ourea.getNearby("or/mt-hood-meadows") { limit = 5 }` and prints each one's name
-and distance, then does the same around a coordinate with `getNearbyAt`.
+and distance, then does the same around a coordinate with `getPointNearby`.
 
 **Done when:** the example has a header comment, `./gradlew runExamples` runs it
 against the mock (add a `/nearby` route to `mock-server/` that returns a

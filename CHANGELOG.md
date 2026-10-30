@@ -12,6 +12,9 @@ Moves to the v1 contract live on api.oureawx.com (ensemble-weather-spec
 
 ### Changed
 
+- The coordinate methods follow the operation ids: `getCurrentAt` is
+  `getPointCurrent`, `getAlertsAt` is `getPointAlerts` and `getNearbyAt` is
+  `getPointNearby`, beside `getPointForecast`. There are no aliases.
 - `precip_*` is `precipitation_*` everywhere: `DailyForecast.totalPrecipitation`,
   `totalPrecipitationIfWet`, `precipitationProbability`,
   `precipitationOccurrenceProbability`, `precipitationType`,
