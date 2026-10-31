@@ -27,7 +27,7 @@ jobs:
           java-version: |
             11
             21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - name: Format (ktlint)
         run: ./gradlew ktlintCheck
       - name: Lint (detekt, with type resolution)
@@ -61,7 +61,7 @@ jobs:
             11
             ${{ matrix.jdk }}
             21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - name: Tests, vectors and spec drift (coverage on JDK 11)
         env:
           TEST_JDK: ${{ matrix.jdk }}
@@ -91,5 +91,5 @@ jobs:
           java-version: |
             11
             21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - run: ./gradlew runExamples
