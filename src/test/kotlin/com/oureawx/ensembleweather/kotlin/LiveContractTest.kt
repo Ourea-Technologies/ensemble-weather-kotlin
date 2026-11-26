@@ -64,7 +64,12 @@ class LiveContractTest {
             assertNotNull(plume.series.plume)
             val ranked = ourea.explore(ExploreMetric.Snow5d) { limit = 2 }
             assertTrue(ranked.items.size <= 2)
-            assertEquals(3, ourea.exploreItems(ExploreMetric.BaseDepth) { limit = 2 }.take(3).toList().size)
+            val walked =
+                ourea
+                    .exploreItems(ExploreMetric.BaseDepth) { limit = 2 }
+                    .take(3)
+                    .toList()
+            assertEquals(3, walked.size)
             val sorted = ourea.searchLocations("hood") { sort = ExploreMetric.Snow5d }
             assertTrue(sorted.items.isNotEmpty())
             assertTrue(ourea.getComposition().models.isNotEmpty())

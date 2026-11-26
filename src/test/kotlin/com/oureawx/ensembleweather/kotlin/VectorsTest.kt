@@ -146,17 +146,29 @@ class VectorsTest {
                 }
             }
 
-            "getCurrentConditions" -> client.getCurrent(args.string("location"))
+            "getCurrentConditions" -> {
+                client.getCurrent(args.string("location"))
+            }
 
-            "getCurrentByCoordinates" -> client.getPointCurrent(args.double("lat"), args.double("lon"))
+            "getCurrentByCoordinates" -> {
+                client.getPointCurrent(args.double("lat"), args.double("lon"))
+            }
 
-            "getLocationAlerts" -> client.getAlerts(args.string("location"))
+            "getLocationAlerts" -> {
+                client.getAlerts(args.string("location"))
+            }
 
-            "getAlertsByCoordinates" -> client.getPointAlerts(args.double("lat"), args.double("lon"))
+            "getAlertsByCoordinates" -> {
+                client.getPointAlerts(args.double("lat"), args.double("lon"))
+            }
 
-            "getNearbyLocations" -> client.getNearby(args.string("location"))
+            "getNearbyLocations" -> {
+                client.getNearby(args.string("location"))
+            }
 
-            "getNearbyByCoordinates" -> client.getPointNearby(args.double("lat"), args.double("lon"))
+            "getNearbyByCoordinates" -> {
+                client.getPointNearby(args.double("lat"), args.double("lon"))
+            }
 
             "getLocations", "getAllLocations" -> {
                 client.getLocationsPage(args["state"]?.jsonPrimitive?.content) {
@@ -164,7 +176,9 @@ class VectorsTest {
                 }
             }
 
-            "getAvailableRuns" -> client.getRuns(limit = args["limit"]?.jsonPrimitive?.int)
+            "getAvailableRuns" -> {
+                client.getRuns(limit = args["limit"]?.jsonPrimitive?.int)
+            }
 
             "searchLocations" -> {
                 client.searchLocations(args.string("q")) {
@@ -193,7 +207,9 @@ class VectorsTest {
                 }
             }
 
-            "getComposition" -> client.getComposition()
+            "getComposition" -> {
+                client.getComposition()
+            }
 
             "getLocationSeason" -> {
                 client.getSeason(args.string("location")) {
@@ -209,9 +225,13 @@ class VectorsTest {
                 }
             }
 
-            "getLocationSnowpack" -> client.getSnowpack(args.string("location"))
+            "getLocationSnowpack" -> {
+                client.getSnowpack(args.string("location"))
+            }
 
-            "getLocationSnowpackPlume" -> client.getSnowpackPlume(args.string("location"))
+            "getLocationSnowpackPlume" -> {
+                client.getSnowpackPlume(args.string("location"))
+            }
 
             "getAlertOutlines" -> {
                 client.getAlertOutlines {
@@ -222,7 +242,9 @@ class VectorsTest {
                 }
             }
 
-            "getAvalancheZones" -> client.getAvalancheZones()
+            "getAvalancheZones" -> {
+                client.getAvalancheZones()
+            }
 
             "getCatalogLocation" -> {
                 client.getCatalogLocation(args.string("slug")) {
@@ -230,7 +252,9 @@ class VectorsTest {
                 }
             }
 
-            "getCatalogStation" -> client.getCatalogStation(args.string("slug"))
+            "getCatalogStation" -> {
+                client.getCatalogStation(args.string("slug"))
+            }
 
             "getAttribution" -> {
                 client.getAttribution()
