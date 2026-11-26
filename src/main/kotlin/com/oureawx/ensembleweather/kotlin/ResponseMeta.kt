@@ -27,6 +27,14 @@ internal fun ApiResponse.attach(meta: ResponseMeta) {
         is PublicCatalogStationDetail -> this.meta = meta
         is AttributionRegistry -> this.meta = meta
         is RunsResponse -> this.meta = meta
+        is ExploreResponse -> this.meta = meta
+        is CompositionResponse -> this.meta = meta
+        is SeasonResponse -> this.meta = meta
+        is SnowTrendResponse -> this.meta = meta
+        is SnowpackResponse -> this.meta = meta
+        is SnowpackPlumeResponse -> this.meta = meta
+        is AlertOutlineCollection -> this.meta = meta
+        is AvalancheZoneCollection -> this.meta = meta
     }
 }
 

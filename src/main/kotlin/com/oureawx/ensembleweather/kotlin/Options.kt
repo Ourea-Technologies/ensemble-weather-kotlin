@@ -32,8 +32,11 @@ public open class ForecastOptions internal constructor() {
     /** Include per-model breakdowns (Pro; default `false`). */
     public var models: Boolean? = null
 
-    /** Include each member's values (default `false`). */
-    public var members: Boolean? = null
+    /**
+     * Each member's values: [Members.Hourly] at every hour ([TimeSeriesPoint.members]), or [Members.Plume] for
+     * the plume view ([ForecastData.plume], columns instead of the hourly series). Default [Members.Off].
+     */
+    public var members: Members? = null
 
     /** Include daily summaries (default `true`). */
     public var daily: Boolean? = null
@@ -145,7 +148,7 @@ public class NearbyOptions internal constructor() {
 /** Options for a location search. */
 @OureaDsl
 public class SearchOptions internal constructor() {
-    /** A hard state filter (code or name). */
+    /** A hard state filter (a USPS code, sent lowercased, or a name). */
     public var state: String? = null
 
     /** A hard county filter. */
@@ -156,7 +159,164 @@ public class SearchOptions internal constructor() {
 
     /** The most hits (1..100, default 20). */
     public var limit: Int? = null
+
+    /**
+     * Rank the hits by an explore metric instead of by relevance (the default, `null`); each hit then carries
+     * [SearchHit.explore].
+     */
+    public var sort: ExploreMetric? = null
+
+    /** The direction of a metric [sort] (default [SortOrder.Descending]). */
+    public var order: SortOrder? = null
+
+    /** Only hits within [radiusKm] of this point. */
+    public var near: LatLon? = null
+
+    /** The radius around [near], km (above 0, at most 1000; default 100). */
+    public var radiusKm: Double? = null
+
+    /** The unit system of [SearchHit.explore] values; defaults to the client's. */
+    public var units: Units? = null
 }
+
+/** Options for [Client.explore] and [Client.exploreItems]. */
+@OureaDsl
+public class ExploreOptions internal constructor() {
+    /** Highest first ([SortOrder.Descending], the default) or lowest first. */
+    public var order: SortOrder? = null
+
+    /** Only places of this type. */
+    public var type: LocationType? = null
+
+    /** Only places in this state (a USPS code, sent lowercased). */
+    public var state: String? = null
+
+    /** Only places within [radiusKm] of this point; each item then carries [ExploreItem.distanceKm]. */
+    public var near: LatLon? = null
+
+    /** The radius around [near], km (above 0, at most 1000; default 100). */
+    public var radiusKm: Double? = null
+
+    /** Only points at or above this elevation, in the request's length unit. */
+    public var elevationMin: Double? = null
+
+    /** Only points at or below this elevation, in the request's length unit. */
+    public var elevationMax: Double? = null
+
+    /** Each place's own point ([ExplorePoints.Primary], the default) or every named elevation too. */
+    public var points: ExplorePoints? = null
+
+    /** Page size (1..100, default 25). */
+    public var limit: Int? = null
+
+    /** The cursor from the previous page (page calls only). */
+    public var cursor: String? = null
+
+    /** The unit system; defaults to the client's. */
+    public var units: Units? = null
+}
+
+/** Options for [Client.getSeason]. */
+@OureaDsl
+public class SeasonOptions internal constructor() {
+    /** The water year, by its ending year (2027 is 2026-10-01 to 2027-09-30); default the current one. */
+    public var waterYear: Int? = null
+
+    /** Opt-in sections: `daily` ([SeasonResponse.daily]). */
+    public var include: List<String>? = null
+
+    /** The unit system; defaults to the client's. */
+    public var units: Units? = null
+}
+
+/** Options for [Client.getSnowTrend]. */
+@OureaDsl
+public class SnowTrendOptions internal constructor() {
+    /** A named elevation of the location (`main_lodge`); default its own point. */
+    public var elevation: String? = null
+
+    /** The unit system; defaults to the client's. */
+    public var units: Units? = null
+}
+
+/** Options for [Client.getSnowpack] and [Client.getSnowpackPlume]. */
+@OureaDsl
+public class SnowpackOptions internal constructor() {
+    /** The unit system; defaults to the client's. */
+    public var units: Units? = null
+}
+
+/** Options for [Client.getAlertOutlines]. */
+@OureaDsl
+public class AlertOutlineOptions internal constructor() {
+    /** Only these classes (the wire's `class`); default both. Sent sorted, as one comma list. */
+    public var classes: List<AlertClass>? = null
+
+    /** Only outlines that intersect this box. */
+    public var bbox: BoundingBox? = null
+}
+
+/** What [ForecastOptions.members] asks for. */
+public enum class Members(
+    internal val wire: String,
+) {
+    /** No member values (`members=false`, the default). */
+    Off("false"),
+
+    /** Each member's values at every hour (`members=true`): [TimeSeriesPoint.members]. */
+    Hourly("true"),
+
+    /** The plume view (`members=plume`): [ForecastData.plume], columns instead of [ForecastData.timeseries]. */
+    Plume("plume"),
+}
+
+/** A ranking's direction. */
+public enum class SortOrder(
+    internal val wire: String,
+) {
+    /** Highest first (`desc`, the default). */
+    Descending("desc"),
+
+    /** Lowest first (`asc`). */
+    Ascending("asc"),
+}
+
+/** Which points of a place [Client.explore] ranks. */
+public enum class ExplorePoints(
+    internal val wire: String,
+) {
+    /** Each place's own point (`primary`, the default). */
+    Primary("primary"),
+
+    /** Every named elevation of a place as well (`all`). */
+    All("all"),
+}
+
+/**
+ * A point, degrees: sent as `lat,lon` with a literal comma, each number in its shortest form. Checked when
+ * sent: [lat] within ±90, [lon] within ±180.
+ */
+public data class LatLon(
+    /** Latitude, degrees. */
+    public val lat: Double,
+    /** Longitude, degrees (west negative). */
+    public val lon: Double,
+)
+
+/**
+ * A box, degrees, as RFC 7946's `bbox`: sent as `west,south,east,north` with literal commas. Checked when sent:
+ * longitudes within ±180, latitudes within ±90, [west] ≤ [east] and [south] ≤ [north].
+ */
+public data class BoundingBox(
+    /** The western edge (longitude). */
+    public val west: Double,
+    /** The southern edge (latitude). */
+    public val south: Double,
+    /** The eastern edge (longitude). */
+    public val east: Double,
+    /** The northern edge (latitude). */
+    public val north: Double,
+)
 
 /** Options for the location lists ([Client.locations]). */
 @OureaDsl

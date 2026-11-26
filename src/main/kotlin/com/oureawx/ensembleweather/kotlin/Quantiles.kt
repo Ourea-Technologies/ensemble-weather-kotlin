@@ -120,4 +120,14 @@ public data class ModelEntry(
     public val cycle: String? = null,
     /** How many of its members the forecast carries. */
     public val members: Int? = null,
+    /**
+     * The `member_id`s of this model's members served for display only, on a response that asks for members: `rrfs`
+     * 1..5 are the RRFS ensemble's m001..m005, beside the deterministic run (0).
+     */
+    @SerialName("display_members") public val displayMembers: List<Int>? = null,
+    /**
+     * How the `display_members`' `snowfall` and `cumulative_snowfall` are made, present exactly when
+     * `display_members` is. One of `borrowed_from_deterministic`.
+     */
+    @SerialName("display_members_snowfall") public val displayMembersSnowfall: String? = null,
 )

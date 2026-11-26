@@ -390,6 +390,7 @@ internal class Requester(
                     "INVALID_API_KEY" to Authentication,
                     "UNAUTHORIZED" to Authentication,
                     "PRO_REQUIRED" to Permission,
+                    "PLUS_REQUIRED" to Permission,
                     "LOCATION_NOT_FOUND" to NotFound,
                     "NOT_FOUND" to NotFound,
                     "BAD_REQUEST" to InvalidRequest,

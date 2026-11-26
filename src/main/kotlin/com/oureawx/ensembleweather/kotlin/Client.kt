@@ -160,7 +160,7 @@ public class Client private constructor(
         query.add("max_hours", o.maxHours, DEFAULT_MAX_HOURS)
         query.add("include_past", o.includePast, default = false)
         query.add("models", o.models, default = false)
-        query.add("members", o.members, default = false)
+        query.add("members", o.members?.wire, default = Members.Off.wire)
         query.add("daily", o.daily, default = true)
         query.add("max_days", o.maxDays)
         query.add("hourly", o.hourly, default = true)
@@ -169,7 +169,7 @@ public class Client private constructor(
         query.addList("exclude_sources", o.excludeSources)
         query.add("nowcast", o.nowcast, default = true)
         query.addList("diagnostics", o.diagnostics)
-        query.addList("include", o.include?.distinct()?.sorted())
+        query.addList("include", o.include)
         query.addList("feels_like", o.feelsLike, default = listOf("nws"))
         query.addRaw("prob", prob.wire)
         query.addRaw("totals", totals.wire)
@@ -318,12 +318,19 @@ public class Client private constructor(
         options: SearchOptions.() -> Unit = {},
     ): SearchLocationsResponse {
         val o = SearchOptions().apply(options)
+        val units = o.units ?: units
+        checkUnits(units)
         val q = Query()
         q.add("q", query)
-        q.add("state", o.state)
+        q.add("state", o.state?.let { canonicalState(it) })
         q.add("county", o.county)
         q.add("type", o.type?.value)
         q.add("limit", o.limit, default = DEFAULT_SEARCH_LIMIT)
+        q.add("sort", o.sort?.value)
+        q.add("order", o.order?.wire, default = SortOrder.Descending.wire)
+        q.addRaw("near", o.near?.let { nearValue(it) })
+        q.add("radius_km", o.radiusKm, default = DEFAULT_SEARCH_RADIUS_KM)
+        q.add("units", units.value, DEFAULT_UNITS)
         return fetch<SearchLocationsResponse>(
             Operation("searchLocations", open = true),
             "/api/v1/search/locations",
@@ -346,7 +353,7 @@ public class Client private constructor(
                     this.cursor = cursor ?: this.cursor
                 }
             },
-            { it.locations to it.nextCursor },
+            { it.items to it.nextCursor },
         )
 
     /** One page of the location list (all states when [state] is `null`). */
@@ -439,7 +446,7 @@ public class Client private constructor(
         query.add("admin1", o.admin1)
         query.add("country", o.country)
         query.addList("network", o.network)
-        query.addRepeated("capability", o.capability)
+        query.addList("capability", o.capability)
         query.add("status", o.status)
         query.add("limit", o.limit, default = DEFAULT_CATALOG_LIMIT)
         query.add("cursor", o.cursor)
@@ -489,6 +496,146 @@ public class Client private constructor(
             }
         return fetch<RunsResponse>(Operation("getAvailableRuns"), "/api/v1/runs", query)
     }
+
+    /** Every pinnable run, newest first, following the cursor as you collect. */
+    public fun runs(limit: Int? = null): Flow<RunInfo> =
+        paged({ cursor -> getRuns(limit, cursor) }, { it.items to it.nextCursor })
+
+    // ---- Explore, composition ------------------------------------------------------------
+
+    /**
+     * One page of places ranked by [metric], a value the server computes (`snow_5d`: the next five days'
+     * snowfall). Pass a page's [ExploreResponse.nextCursor] as [ExploreOptions.cursor] for the next.
+     */
+    public suspend fun explore(
+        metric: ExploreMetric,
+        options: ExploreOptions.() -> Unit = {},
+    ): ExploreResponse {
+        val o = ExploreOptions().apply(options)
+        val units = o.units ?: units
+        checkUnits(units)
+        if (metric.value.isEmpty()) throw UsageException("explore needs a metric")
+        val query = Query()
+        query.add("metric", metric.value)
+        query.add("order", o.order?.wire, default = SortOrder.Descending.wire)
+        query.add("type", o.type?.value)
+        query.add("state", o.state?.let { canonicalState(it) })
+        query.addRaw("near", o.near?.let { nearValue(it) })
+        query.add("radius_km", o.radiusKm, default = DEFAULT_EXPLORE_RADIUS_KM)
+        query.add("elevation_min", o.elevationMin)
+        query.add("elevation_max", o.elevationMax)
+        query.add("points", o.points?.wire, default = ExplorePoints.Primary.wire)
+        query.add("limit", o.limit, default = DEFAULT_EXPLORE_LIMIT)
+        query.add("cursor", o.cursor)
+        query.add("units", units.value, DEFAULT_UNITS)
+        return fetch<ExploreResponse>(Operation("explore"), "/api/v1/explore", query)
+    }
+
+    /** Every place ranked by [metric], in rank order, following the cursor as you collect. */
+    public fun exploreItems(
+        metric: ExploreMetric,
+        options: ExploreOptions.() -> Unit = {},
+    ): Flow<ExploreItem> =
+        paged(
+            { cursor ->
+                explore(metric) {
+                    options()
+                    this.cursor = cursor ?: this.cursor
+                }
+            },
+            { it.items to it.nextCursor },
+        )
+
+    /** The blend's served models and their members. Sent without the API key (an open route). */
+    public suspend fun getComposition(): CompositionResponse =
+        fetch<CompositionResponse>(Operation("getComposition", open = true), "/api/v1/composition", Query())
+
+    // ---- Season, snow trend, snowpack ------------------------------------------------------
+
+    /** Observed season-to-date precipitation (and, later, snowfall) at a named location. */
+    public suspend fun getSeason(
+        location: String,
+        options: SeasonOptions.() -> Unit = {},
+    ): SeasonResponse {
+        val (state, slug) = splitLocation(location)
+        val o = SeasonOptions().apply(options)
+        val units = o.units ?: units
+        checkUnits(units)
+        val query = Query()
+        query.add("water_year", o.waterYear)
+        query.addList("include", o.include)
+        query.add("units", units.value, DEFAULT_UNITS)
+        return fetch<SeasonResponse>(Operation("getLocationSeason"), locationPath(state, slug) + "/season", query)
+    }
+
+    /**
+     * Each recent run's daily snowfall at a named location, as a grid. Plus or Pro: an anonymous or Free caller
+     * gets a [PermissionException] with code `PLUS_REQUIRED`.
+     */
+    public suspend fun getSnowTrend(
+        location: String,
+        options: SnowTrendOptions.() -> Unit = {},
+    ): SnowTrendResponse {
+        val (state, slug) = splitLocation(location)
+        val o = SnowTrendOptions().apply(options)
+        val units = o.units ?: units
+        checkUnits(units)
+        val query = Query()
+        query.add("elevation", o.elevation)
+        query.add("units", units.value, DEFAULT_UNITS)
+        val path = locationPath(state, slug) + "/snow-trend"
+        return fetch<SnowTrendResponse>(Operation("getLocationSnowTrend"), path, query)
+    }
+
+    /** (Beta) The snowpack forecast of a named location's spots: depth, layers and surface. */
+    public suspend fun getSnowpack(
+        location: String,
+        options: SnowpackOptions.() -> Unit = {},
+    ): SnowpackResponse {
+        val (state, slug) = splitLocation(location)
+        val path = locationPath(state, slug) + "/snowpack"
+        return fetch<SnowpackResponse>(Operation("getLocationSnowpack"), path, snowpackQuery(options))
+    }
+
+    /** (Beta) The snow-depth plume of a named location: every member's depth, and its bands. */
+    public suspend fun getSnowpackPlume(
+        location: String,
+        options: SnowpackOptions.() -> Unit = {},
+    ): SnowpackPlumeResponse {
+        val (state, slug) = splitLocation(location)
+        val path = locationPath(state, slug) + "/snowpack/plume"
+        return fetch<SnowpackPlumeResponse>(Operation("getLocationSnowpackPlume"), path, snowpackQuery(options))
+    }
+
+    private fun snowpackQuery(options: SnowpackOptions.() -> Unit): Query {
+        val o = SnowpackOptions().apply(options)
+        val units = o.units ?: units
+        checkUnits(units)
+        return Query().apply { add("units", units.value, DEFAULT_UNITS) }
+    }
+
+    // ---- GeoJSON ---------------------------------------------------------------------------
+
+    /**
+     * The outlines of the active NWS winter and wind alerts, a GeoJSON `FeatureCollection` passed through with
+     * the API's keys and its geometry untouched (never reprojected or simplified).
+     */
+    public suspend fun getAlertOutlines(options: AlertOutlineOptions.() -> Unit = {}): AlertOutlineCollection {
+        val o = AlertOutlineOptions().apply(options)
+        val query = Query()
+        query.addList("class", o.classes?.map { it.value })
+        query.addRaw("bbox", o.bbox?.let { bboxValue(it) })
+        return fetch<AlertOutlineCollection>(Operation("getAlertOutlines"), "/api/v1/alerts/outlines", query)
+    }
+
+    /**
+     * Every avalanche center's forecast zones with today's danger rating, a GeoJSON `FeatureCollection` passed
+     * through with the API's keys (so a zone's `forecast_url` is [AvalancheZoneProperties.forecastUrl]).
+     */
+    public suspend fun getAvalancheZones(): AvalancheZoneCollection =
+        fetch<AvalancheZoneCollection>(Operation("getAvalancheZones"), "/api/v1/avalanche/zones", Query())
+
+    // ---- Attribution -----------------------------------------------------------------------
 
     /** Every data source with its licence and required notices. Sent without the API key. */
     public suspend fun getAttribution(): AttributionRegistry =
@@ -675,6 +822,11 @@ public class Client private constructor(
         private const val DEFAULT_NEARBY_LIMIT = 3
         private const val DEFAULT_RADIUS_KM = 50.0
         private const val DEFAULT_SEARCH_LIMIT = 20
+        private const val DEFAULT_SEARCH_RADIUS_KM = 100.0
+        private const val DEFAULT_EXPLORE_RADIUS_KM = 100.0
+        private const val DEFAULT_EXPLORE_LIMIT = 25
+        private const val MAX_LATITUDE = 90.0
+        private const val MAX_LONGITUDE = 180.0
         private const val DEFAULT_CATALOG_LIMIT = 20
         private const val DEFAULT_RUNS_LIMIT = 10
 
@@ -715,6 +867,34 @@ public class Client private constructor(
         /** A two-letter USPS code is lowercased; a state name is passed through (the server redirects it). */
         internal fun canonicalState(state: String): String =
             if (state.length == 2 && state.all { it in 'A'..'Z' || it in 'a'..'z' }) state.lowercase() else state
+
+        /** `lat,lon` with a literal comma (BEHAVIOR.md section 3), each number in its shortest form. */
+        internal fun nearValue(near: LatLon): String =
+            degrees("near.lat", near.lat, MAX_LATITUDE) + "," + degrees("near.lon", near.lon, MAX_LONGITUDE)
+
+        /** `west,south,east,north` with literal commas. */
+        internal fun bboxValue(box: BoundingBox): String {
+            if (box.west > box.east || box.south > box.north) {
+                throw UsageException("a bbox is (west, south, east, north) with west <= east and south <= north")
+            }
+            return listOf(
+                degrees("bbox.west", box.west, MAX_LONGITUDE),
+                degrees("bbox.south", box.south, MAX_LATITUDE),
+                degrees("bbox.east", box.east, MAX_LONGITUDE),
+                degrees("bbox.north", box.north, MAX_LATITUDE),
+            ).joinToString(",")
+        }
+
+        private fun degrees(
+            name: String,
+            value: Double,
+            bound: Double,
+        ): String {
+            if (!value.isFinite() || value < -bound || value > bound) {
+                throw UsageException("$name must be within ±$bound, got $value")
+            }
+            return Query.number(value)
+        }
 
         internal fun locationPath(
             state: String,

@@ -170,16 +170,16 @@ public data class PublicCatalogStation(
     public val aliases: List<String>? = null,
     /** The observation network (`snotel`). */
     public val network: StationNetwork? = null,
-    /** The station's id in its network. */
-    @SerialName("source_station_id") public val sourceStationId: String? = null,
+    /** (JSON `source_station_id`) The station's id in its network. */
+    @SerialName("source_station_id") public val sourceId: String? = null,
     /** Elevation above mean sea level, metres. */
     @SerialName("elevation_msl_m") public val elevationMslM: Double? = null,
     /** Sensor height above ground, metres. */
     @SerialName("sensor_height_agl_m") public val sensorHeightAglM: Double? = null,
     /** What the station measures. */
     @SerialName("sensor_capabilities") public val sensorCapabilities: List<String>? = null,
-    /** The station status (`active`). */
-    @SerialName("station_status") public val stationStatus: StationStatus? = null,
+    /** (JSON `station_status`) The station status (`active`). */
+    @SerialName("station_status") public val status: StationStatus? = null,
     /** When it last reported (ISO 8601). */
     @SerialName("last_report_at") public val lastReportAt: String? = null,
     /** Free-form JSON of the last report. */
@@ -190,8 +190,8 @@ public data class PublicCatalogStation(
     @SerialName("decommission_date") public val decommissionDate: String? = null,
     /** How often it reports, minutes. */
     @SerialName("update_frequency_minutes") public val updateFrequencyMinutes: Int? = null,
-    /** The station's page. */
-    @SerialName("station_url") public val stationUrl: String? = null,
+    /** (JSON `station_url`) The station's page. */
+    @SerialName("station_url") public val url: String? = null,
     /** The station's data. */
     @SerialName("data_url") public val dataUrl: String? = null,
     /** A short description. */
@@ -239,16 +239,16 @@ public data class PublicCatalogStationDetail(
     public val aliases: List<String>? = null,
     /** The observation network (`snotel`). */
     public val network: StationNetwork? = null,
-    /** The station's id in its network. */
-    @SerialName("source_station_id") public val sourceStationId: String? = null,
+    /** (JSON `source_station_id`) The station's id in its network. */
+    @SerialName("source_station_id") public val sourceId: String? = null,
     /** Elevation above mean sea level, metres. */
     @SerialName("elevation_msl_m") public val elevationMslM: Double? = null,
     /** Sensor height above ground, metres. */
     @SerialName("sensor_height_agl_m") public val sensorHeightAglM: Double? = null,
     /** What the station measures. */
     @SerialName("sensor_capabilities") public val sensorCapabilities: List<String>? = null,
-    /** The station status. */
-    @SerialName("station_status") public val stationStatus: StationStatus? = null,
+    /** (JSON `station_status`) The station status. */
+    @SerialName("station_status") public val status: StationStatus? = null,
     /** When it last reported (ISO 8601). */
     @SerialName("last_report_at") public val lastReportAt: String? = null,
     /** Free-form JSON of the last report. */
@@ -259,8 +259,8 @@ public data class PublicCatalogStationDetail(
     @SerialName("decommission_date") public val decommissionDate: String? = null,
     /** How often it reports, minutes. */
     @SerialName("update_frequency_minutes") public val updateFrequencyMinutes: Int? = null,
-    /** The station's page. */
-    @SerialName("station_url") public val stationUrl: String? = null,
+    /** (JSON `station_url`) The station's page. */
+    @SerialName("station_url") public val url: String? = null,
     /** The station's data. */
     @SerialName("data_url") public val dataUrl: String? = null,
     /** A short description. */
@@ -281,6 +281,8 @@ public data class PublicCatalogStationDetail(
     public val template: CatalogTemplateSummary? = null,
     /** Published content entries. */
     public val content: List<CatalogResolvedEntry>? = null,
+    /** Whether search engines should index this station's page. */
+    public val indexable: Boolean,
 ) : ApiResponse {
     @Transient
     override var meta: ResponseMeta = ResponseMeta.None
@@ -309,14 +311,16 @@ public data class PublicCatalogPrimaryLocation(
 public data class PublicCatalogElevation(
     /** Its label (`Mid-Mountain`). */
     public val label: String,
-    /** Elevation in metres. */
-    @SerialName("elevation_m") public val elevationM: Double,
+    /** (JSON `elevation_m`) Elevation in metres. */
+    @SerialName("elevation_m") public val heightM: Double,
     /** Whether it is the default to show. */
     @SerialName("is_default") public val isDefault: Boolean,
     /** Its own latitude, when it has one. */
     @SerialName("lat_override") public val latOverride: Double? = null,
     /** Its own longitude, when it has one. */
     @SerialName("lon_override") public val lonOverride: Double? = null,
+    /** What the place is called, for display. */
+    @SerialName("display_name") public val displayName: String? = null,
 )
 
 /** A photo. */
@@ -360,8 +364,8 @@ public data class PublicCatalogNearbyStation(
     public val name: String,
     /** Its network. */
     public val network: StationNetwork,
-    /** Its status. */
-    @SerialName("station_status") public val stationStatus: StationStatus,
+    /** (JSON `station_status`) Its status. */
+    @SerialName("station_status") public val status: StationStatus,
     /** Whether it is the location's primary station. */
     @SerialName("is_primary") public val isPrimary: Boolean,
     /** Distance, km. */
@@ -379,8 +383,8 @@ public data class CatalogTemplateSummary(
     public val spec: List<CmsTemplateSection>,
     /** The location type it is for; `null` is a wildcard. */
     @SerialName("location_type") public val locationType: LocationType? = null,
-    /** The template variant; `null` is a wildcard. */
-    @SerialName("template_variant") public val templateVariant: TemplateVariant? = null,
+    /** (JSON `template_variant`) The template variant; `null` is a wildcard. */
+    @SerialName("template_variant") public val variant: TemplateVariant? = null,
 )
 
 /** One section of a page template. */
@@ -409,8 +413,8 @@ public data class CatalogResolvedEntry(
     public val slot: String,
     /** Its order in the slot. */
     @SerialName("display_order") public val displayOrder: Int,
-    /** The locale it resolved to. */
-    @SerialName("resolved_locale") public val resolvedLocale: String,
+    /** (JSON `resolved_locale`) The locale it resolved to. */
+    @SerialName("resolved_locale") public val locale: String,
     /** When it was updated (ISO 8601). */
     @SerialName("updated_at") public val updatedAt: String,
 )

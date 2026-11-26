@@ -67,7 +67,7 @@ public class AuthenticationException internal constructor(
 ) : ApiException(status, code, message, requestId, rateLimit, docUrl, param)
 
 /**
- * Your plan does not allow this request (`PRO_REQUIRED`, 403). From a coordinate route
+ * Your plan does not allow this request (`PRO_REQUIRED` or `PLUS_REQUIRED`, 403). From a coordinate route
  * it may name the [nearestLocation] whose forecast answers without a key.
  */
 public class PermissionException internal constructor(

@@ -5,7 +5,7 @@
 complexity:
   TooManyFunctions:
     # Client is the API facade: one function per operation (BEHAVIOR.md section 3), by design.
-    allowedFunctionsPerClass: 40
+    allowedFunctionsPerClass: 50
     allowedFunctionsPerObject: 20
     allowedFunctionsPerFile: 40
   CyclomaticComplexMethod:

@@ -28,10 +28,14 @@ public data class CurrentResponse(
     @SerialName("model_run_initialized_at") public val modelRunInitializedAt: String? = null,
     /** The obs-blended forecast hours around now (with `include = listOf("nowcast_hours")`). */
     @SerialName("nowcast_hours") public val nowcastHours: List<TimeSeriesPoint>? = null,
-    /** "Right now", flattened; `null` when no served hour is within an hour of now. */
-    public val current: CurrentConditions? = null,
+    /** (JSON `current`) "Right now", flattened; `null` when no served hour is within an hour of now. */
+    @SerialName("current") public val now: CurrentConditions? = null,
     /** The live nowcast sources this body was built without. */
     @SerialName("nowcast_unavailable") public val nowcastUnavailable: List<NowcastSource>? = null,
+    /** The place summary, written by the server from served values only, so every client shows the same words. */
+    public val summary: PlaceSummary? = null,
+    /** The mountain pass forecast at the pass's own point and elevation. */
+    public val pass: PassForecast? = null,
 ) : ApiResponse {
     @Transient
     override var meta: ResponseMeta = ResponseMeta.None
@@ -59,6 +63,29 @@ public data class ActiveAlert(
     public val onset: String? = null,
     /** When it ends, when NWS gives one. */
     public val ends: String? = null,
+    /** When NWS issued this message. */
+    public val sent: String? = null,
+    /** The CAP message type, snake_case. One of `alert`, `update`, `cancel`. */
+    @SerialName("message_type") public val messageType: String? = null,
+    /** The ids of the messages this one replaces. */
+    public val references: List<String>? = null,
+    /** The issuing NWS office. */
+    @SerialName("sender_name") public val senderName: String? = null,
+    /** The places this message covers, as NWS words them. */
+    @SerialName("area_desc") public val areaDesc: String? = null,
+    /** The full NWS text, unedited. */
+    public val description: String? = null,
+    /** What NWS says to do, unedited. */
+    public val instruction: String? = null,
+    /** The NWS forecast page for this location. */
+    @SerialName("source_url") public val sourceUrl: String? = null,
+    /** The stable identity of this event. */
+    @SerialName("event_key") public val eventKey: String? = null,
+    /**
+     * The VTEC action of this message, lower case. One of `new`, `con`, `ext`, `exa`, `exb`, `upg`, `can`, `exp`,
+     * `cor`, `rou`.
+     */
+    @SerialName("vtec_action") public val vtecAction: String? = null,
 )
 
 /** One sensor's latest readings, in the request's units; a reading it does not take is `null`. */
@@ -70,8 +97,8 @@ public data class SensorObservation(
     public val name: String,
     /** The observation network. */
     public val source: String,
-    /** When it reported (ISO 8601). */
-    @SerialName("observation_time") public val observationTime: String,
+    /** (JSON `observation_time`) When it reported (ISO 8601). */
+    @SerialName("observation_time") public val observedAt: String,
     /** Air temperature. */
     public val temperature: Double? = null,
     /** Dewpoint. */
@@ -114,6 +141,16 @@ public data class SensorObservation(
     @SerialName("solar_radiation") public val solarRadiation: Double? = null,
     /** Road-weather pavement state, as the network reports it. */
     @SerialName("pavement_condition") public val pavementCondition: String? = null,
+    /**
+     * Straight-line surface distance from the location to the sensor, in km (at most 25), as
+     * `nearest_sensors[].distance_km`.
+     */
+    @SerialName("distance_km") public val distanceKm: Double,
+    /**
+     * The sensor's registry elevation minus the location's, in the caller's length units (m metric, ft imperial),
+     * as `nearest_sensors[].elevation_diff`.
+     */
+    @SerialName("elevation_diff") public val elevationDiff: Double? = null,
 )
 
 /** The active alerts for a location or point. */
@@ -121,12 +158,12 @@ public data class SensorObservation(
 public data class AlertsResponse(
     /** Where the alerts are for. */
     public val location: LocationRef,
-    /** How many alerts. */
-    @SerialName("alert_count") public val alertCount: Int,
+    /** (JSON `alert_count`) How many alerts. */
+    @SerialName("alert_count") public val count: Int,
     /** The snapshot time (ISO 8601). */
     @SerialName("as_of") public val asOf: String,
-    /** The alerts (possibly none). */
-    public val alerts: List<ActiveAlert>,
+    /** (JSON `alerts`) The alerts (possibly none). */
+    @SerialName("alerts") public val items: List<ActiveAlert>,
     /** The data sources and their credit line. */
     public val attribution: ResponseAttribution,
 ) : ApiResponse {
@@ -159,18 +196,7 @@ public data class LocationSummary(
     /** A catalog blurb. */
     public val description: String? = null,
     /** The named elevation points, the primary first. */
-    public val elevations: List<LocationElevation>? = null,
-)
-
-/** A named elevation point of a location. */
-@Serializable
-public data class LocationElevation(
-    /** Its name. */
-    public val name: String,
-    /** The elevation in the request's length unit. */
-    public val elevation: Double,
-    /** `true` on the primary only. */
-    @SerialName("default") public val isDefault: Boolean? = null,
+    public val elevations: List<ElevationSummary>? = null,
 )
 
 /** A nearby location, with its distance. */
@@ -199,20 +225,20 @@ public data class NearbyLocation(
     /** A catalog blurb. */
     public val description: String? = null,
     /** The named elevation points. */
-    public val elevations: List<LocationElevation>? = null,
+    public val elevations: List<ElevationSummary>? = null,
 )
 
 /** A location and its nearest neighbours. */
 @Serializable
 public data class NearbyLocationsResponse(
-    /** The location itself. */
-    public val location: LocationSummary,
+    /** (JSON `location`) The location itself. */
+    @SerialName("location") public val origin: LocationSummary,
     /** The radius applied, km. */
     @SerialName("radius_km") public val radiusKm: Double,
     /** How many neighbours. */
     public val count: Int,
-    /** The neighbours, nearest first. */
-    public val locations: List<NearbyLocation>,
+    /** (JSON `locations`) The neighbours, nearest first. */
+    @SerialName("locations") public val items: List<NearbyLocation>,
 ) : ApiResponse {
     @Transient
     override var meta: ResponseMeta = ResponseMeta.None
@@ -230,8 +256,8 @@ public data class NearbyPointResponse(
     @SerialName("radius_km") public val radiusKm: Double,
     /** How many locations. */
     public val count: Int,
-    /** The locations, nearest first. */
-    public val locations: List<NearbyLocation>,
+    /** (JSON `locations`) The locations, nearest first. */
+    @SerialName("locations") public val items: List<NearbyLocation>,
 ) : ApiResponse {
     @Transient
     override var meta: ResponseMeta = ResponseMeta.None
@@ -245,8 +271,8 @@ public data class LocationsResponse(
     public val state: String,
     /** Rows in this page. */
     public val count: Int,
-    /** The rows, ordered by slug. */
-    public val locations: List<LocationSummary>,
+    /** (JSON `locations`) The rows, ordered by slug. */
+    @SerialName("locations") public val items: List<LocationSummary>,
     /** The cursor for the next page; absent on the last one. */
     @SerialName("next_cursor") public val nextCursor: String? = null,
 ) : ApiResponse {
@@ -291,6 +317,11 @@ public data class SearchHit(
     public val timezone: String,
     /** The county. */
     public val county: String,
+    /**
+     * With `sort=<metric>` only, the place's value as `GET /api/v1/explore` ranks it (its own point); `null` where
+     * it has none.
+     */
+    public val explore: ExploreValue? = null,
 )
 
 /** Every data source, grouped by provider, with its licence. */
@@ -345,8 +376,8 @@ public data class AttributionSource(
 public data class RunsResponse(
     /** What a forecast request serves now; `null` when no cycle is servable. */
     public val served: ServedRun? = null,
-    /** Init times at least two models completed, newest first. */
-    public val runs: List<RunInfo>,
+    /** (JSON `runs`) Init times at least two models completed, newest first. */
+    @SerialName("runs") public val items: List<RunInfo>,
     /** How many runs. */
     public val count: Int,
     /** The cursor for older runs ([Client.getRuns]); `null` on the last page. */
