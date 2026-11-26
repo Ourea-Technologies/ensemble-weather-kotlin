@@ -391,6 +391,12 @@ public value class Condition(
         /** `freezing_rain` */
         public val FreezingRain: Condition = Condition("freezing_rain")
 
+        /** `light_snow` */
+        public val LightSnow: Condition = Condition("light_snow")
+
+        /** `heavy_snow` */
+        public val HeavySnow: Condition = Condition("heavy_snow")
+
         /** Every value this SDK version knows. */
         public val entries: List<Condition> =
             listOf(
@@ -422,6 +428,8 @@ public value class Condition(
                 ChanceFreezingRain,
                 FreezingRainLikely,
                 FreezingRain,
+                LightSnow,
+                HeavySnow,
             )
         private val known: Set<Condition> = entries.toSet()
     }
@@ -558,6 +566,18 @@ public value class ConditionIcon(
         /** `night_moon_showers` */
         public val NightMoonShowers: ConditionIcon = ConditionIcon("night_moon_showers")
 
+        /** `light_snow` */
+        public val LightSnow: ConditionIcon = ConditionIcon("light_snow")
+
+        /** `heavy_snow` */
+        public val HeavySnow: ConditionIcon = ConditionIcon("heavy_snow")
+
+        /** `night_light_snow` */
+        public val NightLightSnow: ConditionIcon = ConditionIcon("night_light_snow")
+
+        /** `night_heavy_snow` */
+        public val NightHeavySnow: ConditionIcon = ConditionIcon("night_heavy_snow")
+
         /** Every value this SDK version knows. */
         public val entries: List<ConditionIcon> =
             listOf(
@@ -599,6 +619,10 @@ public value class ConditionIcon(
                 NightRainLikely,
                 NightShowers,
                 NightMoonShowers,
+                LightSnow,
+                HeavySnow,
+                NightLightSnow,
+                NightHeavySnow,
             )
         private val known: Set<ConditionIcon> = entries.toSet()
     }
@@ -667,9 +691,12 @@ public value class MembersView(
         /** `full` */
         public val Full: MembersView = MembersView("full")
 
+        /** `pool` */
+        public val Pool: MembersView = MembersView("pool")
+
         /** Every value this SDK version knows. */
         public val entries: List<MembersView> =
-            listOf(Plume, Full)
+            listOf(Plume, Full, Pool)
         private val known: Set<MembersView> = entries.toSet()
     }
 }
@@ -1048,9 +1075,12 @@ public value class SourceKind(
         /** `basemap` */
         public val Basemap: SourceKind = SourceKind("basemap")
 
+        /** `avalanche_forecast` */
+        public val AvalancheForecast: SourceKind = SourceKind("avalanche_forecast")
+
         /** Every value this SDK version knows. */
         public val entries: List<SourceKind> =
-            listOf(Model, Peer, Observation, Alerts, Climatology, Terrain, Places, Basemap)
+            listOf(Model, Peer, Observation, Alerts, Climatology, Terrain, Places, Basemap, AvalancheForecast)
         private val known: Set<SourceKind> = entries.toSet()
     }
 }
@@ -1360,6 +1390,12 @@ public value class StationNetwork(
         /** `mt_mesonet` */
         public val MtMesonet: StationNetwork = StationNetwork("mt_mesonet")
 
+        /** `rain_gauge` */
+        public val RainGauge: StationNetwork = StationNetwork("rain_gauge")
+
+        /** `surfrad` */
+        public val Surfrad: StationNetwork = StationNetwork("surfrad")
+
         /** Every value this SDK version knows. */
         public val entries: List<StationNetwork> =
             listOf(
@@ -1398,6 +1434,8 @@ public value class StationNetwork(
                 Madis,
                 Nwac,
                 MtMesonet,
+                RainGauge,
+                Surfrad,
             )
         private val known: Set<StationNetwork> = entries.toSet()
     }
@@ -1481,5 +1519,202 @@ public value class TemplateVariant(
         public val entries: List<TemplateVariant> =
             listOf(Mountain, Coastal, Trail, Pass, Generic, Station)
         private val known: Set<TemplateVariant> = entries.toSet()
+    }
+}
+
+/**
+ * What [Client.explore] ranks places by, and a [SearchOptions.sort] other than relevance
+ * (`snow_5d`: the next five days' snowfall; `base_depth`: the snow depth now; `season_precip`:
+ * the observed water-year precipitation).
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class ExploreMetric(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `base_depth` */
+        public val BaseDepth: ExploreMetric = ExploreMetric("base_depth")
+
+        /** `new_snow_24h` */
+        public val NewSnow24h: ExploreMetric = ExploreMetric("new_snow_24h")
+
+        /** `snow_today` */
+        public val SnowToday: ExploreMetric = ExploreMetric("snow_today")
+
+        /** `snow_5d` */
+        public val Snow5d: ExploreMetric = ExploreMetric("snow_5d")
+
+        /** `snow_10d` */
+        public val Snow10d: ExploreMetric = ExploreMetric("snow_10d")
+
+        /** `snow_14d` */
+        public val Snow14d: ExploreMetric = ExploreMetric("snow_14d")
+
+        /** `precip_today` */
+        public val PrecipToday: ExploreMetric = ExploreMetric("precip_today")
+
+        /** `precip_5d` */
+        public val Precip5d: ExploreMetric = ExploreMetric("precip_5d")
+
+        /** `precip_10d` */
+        public val Precip10d: ExploreMetric = ExploreMetric("precip_10d")
+
+        /** `precip_14d` */
+        public val Precip14d: ExploreMetric = ExploreMetric("precip_14d")
+
+        /** `season_precip` */
+        public val SeasonPrecip: ExploreMetric = ExploreMetric("season_precip")
+
+        /** `season_precip_pct_normal` */
+        public val SeasonPrecipPctNormal: ExploreMetric = ExploreMetric("season_precip_pct_normal")
+
+        /** `season_snow` */
+        public val SeasonSnow: ExploreMetric = ExploreMetric("season_snow")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<ExploreMetric> =
+            listOf(
+                BaseDepth,
+                NewSnow24h,
+                SnowToday,
+                Snow5d,
+                Snow10d,
+                Snow14d,
+                PrecipToday,
+                Precip5d,
+                Precip10d,
+                Precip14d,
+                SeasonPrecip,
+                SeasonPrecipPctNormal,
+                SeasonSnow,
+            )
+        private val known: Set<ExploreMetric> = entries.toSet()
+    }
+}
+
+/**
+ * The character of the snow an hour or day brings, from its snow-to-liquid ratio:
+ * `wet` (sticky), `dense` (heavy), `average`, `dry` (powder), `very_dry` (cold smoke).
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class SnowCharacter(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `wet` */
+        public val Wet: SnowCharacter = SnowCharacter("wet")
+
+        /** `average` */
+        public val Average: SnowCharacter = SnowCharacter("average")
+
+        /** `dry` */
+        public val Dry: SnowCharacter = SnowCharacter("dry")
+
+        /** `dense` */
+        public val Dense: SnowCharacter = SnowCharacter("dense")
+
+        /** `very_dry` */
+        public val VeryDry: SnowCharacter = SnowCharacter("very_dry")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<SnowCharacter> =
+            listOf(Wet, Average, Dry, Dense, VeryDry)
+        private val known: Set<SnowCharacter> = entries.toSet()
+    }
+}
+
+/**
+ * The class of an alert outline ([Client.getAlertOutlines]): `winter` or `wind`.
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class AlertClass(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `wind` */
+        public val Wind: AlertClass = AlertClass("wind")
+
+        /** `winter` */
+        public val Winter: AlertClass = AlertClass("winter")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<AlertClass> =
+            listOf(Wind, Winter)
+        private val known: Set<AlertClass> = entries.toSet()
+    }
+}
+
+/**
+ * A mountain pass's official road status, least to most restrictive.
+ *
+ * An open enum: a value this SDK version does not know parses with `isKnown == false`
+ * and keeps the raw string in [value].
+ */
+@Serializable
+@JvmInline
+public value class PassStatusLevel(
+    public val value: String,
+) {
+    /** Whether this SDK version knows this value (false for one the API added later). */
+    public val isKnown: Boolean get() = this in known
+
+    override fun toString(): String = value
+
+    public companion object {
+        /** `none` */
+        public val None: PassStatusLevel = PassStatusLevel("none")
+
+        /** `advisory` */
+        public val Advisory: PassStatusLevel = PassStatusLevel("advisory")
+
+        /** `traction` */
+        public val Traction: PassStatusLevel = PassStatusLevel("traction")
+
+        /** `r1` */
+        public val R1: PassStatusLevel = PassStatusLevel("r1")
+
+        /** `r2` */
+        public val R2: PassStatusLevel = PassStatusLevel("r2")
+
+        /** `r3` */
+        public val R3: PassStatusLevel = PassStatusLevel("r3")
+
+        /** `chains` */
+        public val Chains: PassStatusLevel = PassStatusLevel("chains")
+
+        /** `closed` */
+        public val Closed: PassStatusLevel = PassStatusLevel("closed")
+
+        /** Every value this SDK version knows. */
+        public val entries: List<PassStatusLevel> =
+            listOf(None, Advisory, Traction, R1, R2, R3, Chains, Closed)
+        private val known: Set<PassStatusLevel> = entries.toSet()
     }
 }

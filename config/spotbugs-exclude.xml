@@ -18,14 +18,14 @@
   <Match><Bug pattern="DLS_DEAD_LOCAL_STORE,DLS_DEAD_LOCAL_STORE_SHADOWS_FIELD,SA_LOCAL_SELF_ASSIGNMENT,BC_UNCONFIRMED_CAST,BC_BAD_CAST_TO_ABSTRACT_COLLECTION"/></Match>
   <Match><Bug pattern="NP_NONNULL_PARAM_VIOLATION,NP_LOAD_OF_KNOWN_NULL_VALUE,NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/></Match>
   <Match><Bug pattern="IAOM_DO_NOT_INCREASE_METHOD_ACCESSIBILITY"/></Match>
-  <!-- `EnsembleWeather { ... }` is Kotlin's factory-function idiom (like `Json { }`), named after its type. -->
+  <!-- `Client { ... }` is Kotlin's factory-function idiom (like `Json { }`), named after its type. -->
   <Match>
-    <Class name="com.oureawx.ensembleweather.kotlin.EnsembleWeatherKt"/>
+    <Class name="com.oureawx.ensembleweather.kotlin.ClientKt"/>
     <Bug pattern="NM_METHOD_NAMING_CONVENTION"/>
   </Match>
   <!-- A Flow builder's lambda object, never serialised. -->
   <Match>
-    <Class name="~com\.oureawx\.ensembleweather\.kotlin\.EnsembleWeather\$paged\$.*"/>
+    <Class name="~com\.oureawx\.ensembleweather\.kotlin\.Client\$paged\$.*"/>
     <Bug pattern="SE_BAD_FIELD"/>
   </Match>
 </FindBugsFilter>

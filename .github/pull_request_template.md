@@ -12,7 +12,7 @@ Closes #
 
 ## Checks run locally
 
-- [ ] `./gradlew check` (ktlint, detekt, SpotBugs, Animal Sniffer, tests incl. the 43 vectors)
+- [ ] `./gradlew check` (ktlint, detekt, SpotBugs, Animal Sniffer, tests incl. the 58 vectors)
 - [ ] `./gradlew runExamples`
 - [ ] `./gradlew dokkaGenerate` (public API changes)
 - [ ] `CHANGELOG.md` updated under "Unreleased" (credit yourself by GitHub handle if you like)

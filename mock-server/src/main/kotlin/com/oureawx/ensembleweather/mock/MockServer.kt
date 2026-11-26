@@ -97,6 +97,58 @@ class MockServer(
                 200 to current(units)
             }
 
+            segments.size == 4 && segments[0] == "locations" && segments[3] == "season" -> {
+                200 to load("season")
+            }
+
+            segments.size == 4 && segments[0] == "locations" && segments[3] == "snow-trend" -> {
+                if (keyed) {
+                    200 to load("snow-trend")
+                } else {
+                    403 to error("PLUS_REQUIRED", "The snow trend needs Plus or Pro.")
+                }
+            }
+
+            segments.size == 4 && segments[0] == "locations" && segments[3] == "snowpack" -> {
+                200 to load("snowpack")
+            }
+
+            segments.size == 5 && segments[0] == "locations" && segments[3] == "snowpack" && segments[4] == "plume" -> {
+                200 to load("snowpack-plume")
+            }
+
+            segments.size == 4 && segments[0] == "locations" && segments[3] == "nearby" -> {
+                200 to load("nearby")
+            }
+
+            path == "/api/v1/locations" || (segments.size == 2 && segments[0] == "locations") -> {
+                200 to load("locations-page")
+            }
+
+            path == "/api/v1/nearby" -> {
+                200 to load("nearby-point")
+            }
+
+            path == "/api/v1/runs" -> {
+                200 to load("runs")
+            }
+
+            path == "/api/v1/explore" -> {
+                200 to load("explore")
+            }
+
+            path == "/api/v1/composition" -> {
+                200 to load("composition")
+            }
+
+            path == "/api/v1/alerts/outlines" -> {
+                200 to load("alert-outlines")
+            }
+
+            path == "/api/v1/avalanche/zones" -> {
+                200 to load("avalanche-zones")
+            }
+
             path == "/api/v1/current" -> {
                 if (keyed) 200 to current(units) else 403 to error("PRO_REQUIRED", "Pro only.")
             }
@@ -120,6 +172,10 @@ class MockServer(
             segments.size == 3 && segments[0] == "catalog" && segments[1] == "locations" -> {
                 200 to
                     load("catalog-detail")
+            }
+
+            segments.size == 3 && segments[0] == "catalog" && segments[1] == "stations" -> {
+                200 to load("catalog-station-detail")
             }
 
             path == "/api/v1/attribution" -> {
@@ -259,6 +315,7 @@ class MockServer(
                             put("name", "Mt Hood Test Site")
                             put("source", "snotel")
                             put("observation_time", "2026-11-14T23:00:00Z")
+                            put("distance_km", 1.2)
                             put("temperature", if (units == "imperial") 26.6 else -3.0)
                         },
                     )
@@ -278,6 +335,7 @@ class MockServer(
                     put("wind_speed", 6.0)
                     put("wind_direction", 5.0)
                     put("source", "nowcast")
+                    put("measured", false)
                 },
             )
             put("units", units)

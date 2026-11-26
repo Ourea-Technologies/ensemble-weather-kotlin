@@ -5,9 +5,9 @@ import com.oureawx.ensembleweather.kotlin.ApiException
 import com.oureawx.ensembleweather.kotlin.AuthenticationException
 import com.oureawx.ensembleweather.kotlin.BodyTooLargeException
 import com.oureawx.ensembleweather.kotlin.CachedResponse
+import com.oureawx.ensembleweather.kotlin.Client
 import com.oureawx.ensembleweather.kotlin.ConnectionException
 import com.oureawx.ensembleweather.kotlin.DeprecationNotice
-import com.oureawx.ensembleweather.kotlin.EnsembleWeather
 import com.oureawx.ensembleweather.kotlin.HttpRequest
 import com.oureawx.ensembleweather.kotlin.HttpResponse
 import com.oureawx.ensembleweather.kotlin.HttpTransport
@@ -361,7 +361,7 @@ internal class Requester(
     private fun nearestLocation(value: JsonElement?): NearestLocation? =
         (value as? JsonObject)?.let {
             try {
-                EnsembleWeather.JSON.decodeFromJsonElement(NearestLocation.serializer(), it)
+                Client.JSON.decodeFromJsonElement(NearestLocation.serializer(), it)
             } catch (_: SerializationException) {
                 null
             }
@@ -390,6 +390,7 @@ internal class Requester(
                     "INVALID_API_KEY" to Authentication,
                     "UNAUTHORIZED" to Authentication,
                     "PRO_REQUIRED" to Permission,
+                    "PLUS_REQUIRED" to Permission,
                     "LOCATION_NOT_FOUND" to NotFound,
                     "NOT_FOUND" to NotFound,
                     "BAD_REQUEST" to InvalidRequest,

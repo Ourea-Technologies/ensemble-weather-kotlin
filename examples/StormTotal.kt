@@ -4,14 +4,14 @@
 // hourly p90s is far above the p90 of the total.
 package examples.stormtotal
 
-import com.oureawx.ensembleweather.kotlin.EnsembleWeather
+import com.oureawx.ensembleweather.kotlin.Client
 import com.oureawx.ensembleweather.kotlin.Variable
 import com.oureawx.ensembleweather.kotlin.amountLabel
 import com.oureawx.ensembleweather.kotlin.totalWithin
 import kotlin.time.Duration.Companion.hours
 
 suspend fun main() {
-    val ourea = EnsembleWeather()
+    val ourea = Client()
     val forecast =
         ourea.getForecast("or/mt-hood-meadows") {
             total(
@@ -24,7 +24,7 @@ suspend fun main() {
     val unit = forecast.units.amountLabel
     for (total in forecast.windowTotals.orEmpty()) {
         val q = total.quantiles
-        val window = "hours ${total.windowStartHours}-${total.windowEndHours}"
+        val window = "hours ${total.startHours}-${total.endHours}"
         if (q == null) {
             println("${total.variable} over $window: not covered by this run")
         } else {

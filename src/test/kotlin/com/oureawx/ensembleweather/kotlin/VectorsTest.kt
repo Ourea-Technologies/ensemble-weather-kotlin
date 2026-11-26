@@ -5,7 +5,6 @@ import com.oureawx.ensembleweather.kotlin.internal.Deprecations
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -23,7 +22,11 @@ import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import java.io.File
+import java.lang.reflect.Modifier
 import java.net.URI
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.format.DateTimeParseException
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -96,8 +99,8 @@ class VectorsTest {
         transport: MockTransport,
         warnings: MutableList<DeprecationNotice>,
         scope: TestScope,
-    ): EnsembleWeather =
-        EnsembleWeather {
+    ): Client =
+        Client {
             val env = config["env"]?.jsonObject?.mapValues { it.value.jsonPrimitive.content }.orEmpty()
             environment = { env[it] }
             config["api_key"]?.let { apiKey = it.jsonPrimitive.content }
@@ -112,16 +115,20 @@ class VectorsTest {
             clock = { scope.testScheduler.currentTime }
         }
 
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
     private suspend fun perform(
-        base: EnsembleWeather,
+        base: Client,
         call: JsonObject,
     ): Any {
         val client = call["with_api_key"]?.let { key -> base.config { apiKey = key.jsonPrimitive.content } } ?: base
         val args = call["args"]?.jsonObject ?: JsonObject(emptyMap())
+        val location = args["location"]?.jsonPrimitive?.content
         return when (val operation = call.string("operation")) {
             "getLocationForecast" -> {
-                val options: LocationForecastOptions.() -> Unit = { forecastOptions(args) }
-                val location = args["location"]?.jsonPrimitive?.content
+                val options: LocationForecastOptions.() -> Unit = {
+                    forecastOptions(args)
+                    args["elevations"]?.let { elevations = strings(it) }
+                }
                 if (location != null) {
                     client.getForecast(location, options)
                 } else {
@@ -139,12 +146,114 @@ class VectorsTest {
                 }
             }
 
+            "getCurrentConditions" -> {
+                client.getCurrent(args.string("location"))
+            }
+
+            "getCurrentByCoordinates" -> {
+                client.getPointCurrent(args.double("lat"), args.double("lon"))
+            }
+
+            "getLocationAlerts" -> {
+                client.getAlerts(args.string("location"))
+            }
+
+            "getAlertsByCoordinates" -> {
+                client.getPointAlerts(args.double("lat"), args.double("lon"))
+            }
+
+            "getNearbyLocations" -> {
+                client.getNearby(args.string("location"))
+            }
+
+            "getNearbyByCoordinates" -> {
+                client.getPointNearby(args.double("lat"), args.double("lon"))
+            }
+
+            "getLocations", "getAllLocations" -> {
+                client.getLocationsPage(args["state"]?.jsonPrimitive?.content) {
+                    args["limit"]?.let { limit = it.jsonPrimitive.int }
+                }
+            }
+
+            "getAvailableRuns" -> {
+                client.getRuns(limit = args["limit"]?.jsonPrimitive?.int)
+            }
+
             "searchLocations" -> {
-                client.searchLocations(args.string("q"))
+                client.searchLocations(args.string("q")) {
+                    args["sort"]?.let { sort = ExploreMetric(it.jsonPrimitive.content) }
+                    args["order"]?.let { order = sortOrder(it.jsonPrimitive.content) }
+                    args["near"]?.let { near = latLon(it.jsonObject) }
+                    args["radius_km"]?.let { radiusKm = it.jsonPrimitive.doubleOrNull }
+                    args["state"]?.let { state = it.jsonPrimitive.content }
+                    args["units"]?.let { units = Units(it.jsonPrimitive.content) }
+                }
+            }
+
+            "explore" -> {
+                client.explore(ExploreMetric(args.string("metric"))) {
+                    args["order"]?.let { order = sortOrder(it.jsonPrimitive.content) }
+                    args["type"]?.let { type = LocationType(it.jsonPrimitive.content) }
+                    args["state"]?.let { state = it.jsonPrimitive.content }
+                    args["near"]?.let { near = latLon(it.jsonObject) }
+                    args["radius_km"]?.let { radiusKm = it.jsonPrimitive.doubleOrNull }
+                    args["elevation_min"]?.let { elevationMin = it.jsonPrimitive.doubleOrNull }
+                    args["elevation_max"]?.let { elevationMax = it.jsonPrimitive.doubleOrNull }
+                    args["points"]?.let { points = explorePoints(it.jsonPrimitive.content) }
+                    args["limit"]?.let { limit = it.jsonPrimitive.int }
+                    args["cursor"]?.let { cursor = it.jsonPrimitive.content }
+                    args["units"]?.let { units = Units(it.jsonPrimitive.content) }
+                }
+            }
+
+            "getComposition" -> {
+                client.getComposition()
+            }
+
+            "getLocationSeason" -> {
+                client.getSeason(args.string("location")) {
+                    args["water_year"]?.let { waterYear = it.jsonPrimitive.int }
+                    args["include"]?.let { include = strings(it) }
+                }
+            }
+
+            "getLocationSnowTrend" -> {
+                client.getSnowTrend(args.string("location")) {
+                    args["elevation"]?.let { elevation = it.jsonPrimitive.content }
+                    args["units"]?.let { units = Units(it.jsonPrimitive.content) }
+                }
+            }
+
+            "getLocationSnowpack" -> {
+                client.getSnowpack(args.string("location"))
+            }
+
+            "getLocationSnowpackPlume" -> {
+                client.getSnowpackPlume(args.string("location"))
+            }
+
+            "getAlertOutlines" -> {
+                client.getAlertOutlines {
+                    args["classes"]?.let { c -> classes = strings(c).map(::AlertClass) }
+                    args["bbox"]?.jsonObject?.let {
+                        bbox = BoundingBox(it.double("west"), it.double("south"), it.double("east"), it.double("north"))
+                    }
+                }
+            }
+
+            "getAvalancheZones" -> {
+                client.getAvalancheZones()
             }
 
             "getCatalogLocation" -> {
-                client.getCatalogLocation(args.string("slug"))
+                client.getCatalogLocation(args.string("slug")) {
+                    args["include"]?.let { include = strings(it) }
+                }
+            }
+
+            "getCatalogStation" -> {
+                client.getCatalogStation(args.string("slug"))
             }
 
             "getAttribution" -> {
@@ -168,12 +277,15 @@ class VectorsTest {
     private fun ForecastOptions.forecastOptions(args: JsonObject) {
         args["units"]?.let { units = Units(it.jsonPrimitive.content) }
         args["max_hours"]?.let { maxHours = it.jsonPrimitive.int }
-        args["members"]?.let { members = it.jsonPrimitive.booleanOrNull }
+        args["members"]?.let { members = members(it.jsonPrimitive) }
         args["models"]?.let { models = it.jsonPrimitive.booleanOrNull }
         args["nowcast"]?.let { nowcast = it.jsonPrimitive.booleanOrNull }
         args["include_past"]?.let { includePast = it.jsonPrimitive.booleanOrNull }
         args["daily"]?.let { daily = it.jsonPrimitive.booleanOrNull }
         args["hourly"]?.let { hourly = it.jsonPrimitive.booleanOrNull }
+        args["sources"]?.let { sources = strings(it) }
+        args["exclude_sources"]?.let { excludeSources = strings(it) }
+        args["include"]?.let { include = strings(it) }
         args["prob"]?.jsonArray?.forEach { term ->
             val t = term.jsonObject
             val comparison = Comparison(t.string("op"))
@@ -188,6 +300,25 @@ class VectorsTest {
             total(Variable(t.string("variable")) totalWithin window(t.getValue("window").jsonObject))
         }
     }
+
+    /** `true`, `false` or `"plume"` (BEHAVIOR.md section 3). */
+    private fun members(value: JsonPrimitive): Members =
+        when {
+            value.booleanOrNull == true -> Members.Hourly
+            value.booleanOrNull == false -> Members.Off
+            value.content == "plume" -> Members.Plume
+            else -> fail("members takes true, false or plume, not $value")
+        }
+
+    private fun sortOrder(value: String): SortOrder = SortOrder.entries.single { it.wire == value }
+
+    private fun explorePoints(value: String): ExplorePoints = ExplorePoints.entries.single { it.wire == value }
+
+    private fun latLon(near: JsonObject): LatLon = LatLon(near.double("lat"), near.double("lon"))
+
+    /** A list of strings, or one string (`"elevations": "all"`). */
+    private fun strings(value: JsonElement): List<String> =
+        (value as? JsonArray)?.map { it.jsonPrimitive.content } ?: listOf(value.jsonPrimitive.content)
 
     private fun threshold(t: JsonObject): Threshold {
         val unit =
@@ -288,19 +419,18 @@ class VectorsTest {
     private suspend fun outcome(block: suspend () -> Any): Outcome =
         try {
             Outcome(block(), null)
-        } catch (e: EnsembleWeatherException) {
+        } catch (e: OureaException) {
             Outcome(null, e)
         }
 
     private fun checkResult(
         expected: JsonObject,
         outcome: Outcome,
-        client: EnsembleWeather,
+        client: Client,
     ) {
         outcome.error?.let { throw AssertionError("expected a result, got $it", it) }
         val value = assertNotNull(outcome.value)
         val response = value as ApiResponse
-        val json = encode(value)
         for ((path, want) in expected) {
             when {
                 path == "revalidated" -> {
@@ -320,11 +450,11 @@ class VectorsTest {
                 }
 
                 want is JsonObject && want.containsKey("unknown") -> {
-                    checkUnknownEnum(path, value, want.string("unknown"), json)
+                    checkUnknownEnum(path, value, want.string("unknown"))
                 }
 
                 else -> {
-                    assertJsonEquals(want, navigate(json, path), path)
+                    assertMatches(want, navigate(value, path), path)
                 }
             }
         }
@@ -335,9 +465,8 @@ class VectorsTest {
         path: String,
         value: Any,
         raw: String,
-        json: JsonElement,
     ) {
-        assertEquals(raw, (navigate(json, path) as? JsonPrimitive)?.content, path)
+        assertEquals(raw, navigate(value, path)?.toString(), path)
         val known =
             when (path) {
                 "location.type" -> (value as ForecastResponse).location.type?.isKnown == true
@@ -393,41 +522,52 @@ class VectorsTest {
             else -> "other: ${error::class.simpleName}"
         }
 
-    // ---- JSON helpers -------------------------------------------------------------------
+    // ---- Paths over the models ------------------------------------------------------------
 
-    @Suppress("UNCHECKED_CAST")
-    private fun encode(value: Any): JsonElement {
-        val serializer: KSerializer<Any> =
-            when (value) {
-                is ForecastResponse -> ForecastResponse.serializer()
-                is SearchLocationsResponse -> SearchLocationsResponse.serializer()
-                is PublicCatalogLocationDetail -> PublicCatalogLocationDetail.serializer()
-                is PublicCatalogLocationPage -> PublicCatalogLocationPage.serializer()
-                is AttributionRegistry -> AttributionRegistry.serializer()
-                else -> fail("the runner cannot encode ${value::class.simpleName}")
-            } as KSerializer<Any>
-        return EnsembleWeather.JSON.encodeToJsonElement(serializer, value)
-    }
-
+    /**
+     * Follows a result path (BEHAVIOR.md section 13) over the decoded models, by the SDK names of section 3.0
+     * in snake_case: each segment is the Kotlin property in camelCase, read through its getter. Raw JSON (GeoJSON
+     * coordinates, free-form fields) and maps are followed by key.
+     */
     private fun navigate(
-        root: JsonElement,
+        root: Any,
         path: String,
-    ): JsonElement? {
-        var node: JsonElement? = root
+    ): Any? {
+        var node: Any? = root
         for (segment in Regex("""[^.\[\]]+|\[\d+]""").findAll(path).map { it.value }) {
             node =
                 when {
                     node == null || node is JsonNull -> return null
-                    segment.startsWith("[") -> (node as JsonArray).getOrNull(segment.trim('[', ']').toInt())
-                    else -> (node as JsonObject)[segment]
+                    segment.startsWith("[") -> (node as List<*>).getOrNull(segment.trim('[', ']').toInt())
+                    node is Map<*, *> -> node[segment]
+                    else -> property(node, segment)
                 }
         }
         return node
     }
 
-    private fun assertJsonEquals(
+    private fun property(
+        node: Any,
+        segment: String,
+    ): Any? {
+        val name = KOTLIN_NAMES[segment] ?: segment.replace(Regex("_([a-z0-9])")) { it.groupValues[1].uppercase() }
+        val getter = "get" + name.replaceFirstChar { it.uppercase() }
+        // A value-class property's getter is mangled (`getUnits-<hash>`) and returns the underlying string; the
+        // static `get...$annotations` stubs of annotated properties are not getters.
+        val method =
+            node.javaClass.methods.firstOrNull {
+                it.parameterCount == 0 &&
+                    !Modifier.isStatic(it.modifiers) &&
+                    '$' !in it.name &&
+                    (it.name == getter || it.name == name || it.name.startsWith("$getter-"))
+            } ?: fail("${node.javaClass.simpleName} has no property $name (path segment $segment)")
+        return method.invoke(node)
+    }
+
+    /** A primitive expected at a path: `null` is absent, a string matches as an instant where both parse as one. */
+    private fun assertMatches(
         want: JsonElement,
-        got: JsonElement?,
+        got: Any?,
         path: String,
     ) {
         if (want is JsonNull) {
@@ -435,13 +575,31 @@ class VectorsTest {
             return
         }
         val w = want.jsonPrimitive
-        val g = assertNotNull(got as? JsonPrimitive, "$path is absent")
+        assertNotNull(got, "$path is absent")
+        val g =
+            (got as? JsonPrimitive)?.let { if (it.isString) it.content else it.booleanOrNull ?: it.doubleOrNull } ?: got
         when {
-            w.isString -> assertEquals(w.content, g.content, path)
-            w.booleanOrNull != null -> assertEquals(w.booleanOrNull, g.booleanOrNull, path)
-            else -> assertEquals(w.doubleOrNull, g.doubleOrNull, path)
+            w.isString -> {
+                val text = g.toString()
+                if (text != w.content) assertEquals(instant(w.content), instant(text), path)
+            }
+
+            w.booleanOrNull != null -> {
+                assertEquals(w.booleanOrNull, g as? Boolean, path)
+            }
+
+            else -> {
+                assertEquals(w.doubleOrNull, (g as? Number)?.toDouble(), path)
+            }
         }
     }
+
+    private fun instant(text: String): Instant? =
+        try {
+            OffsetDateTime.parse(text).toInstant()
+        } catch (_: DateTimeParseException) {
+            null
+        }
 
     private fun JsonObject.string(key: String): String = getValue(key).jsonPrimitive.content
 
@@ -472,7 +630,10 @@ class VectorsTest {
     }
 
     companion object {
-        private const val EXPECTED_VECTORS = 43
+        private const val EXPECTED_VECTORS = 58
+
+        /** Kotlin names that are not the camelCase of the SDK name, for a language reason. */
+        private val KOTLIN_NAMES = mapOf("class" to "alertClass", "default" to "isDefault")
         private const val MILLIS = 1000.0
         private const val HEX = 16
         val SPEC = File(System.getProperty("ourea.specDir") ?: "spec")

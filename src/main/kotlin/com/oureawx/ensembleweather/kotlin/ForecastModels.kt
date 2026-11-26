@@ -6,19 +6,19 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
 /**
- * A forecast for a named location ([EnsembleWeather.getForecast]) or a point
- * ([EnsembleWeather.getPointForecast]). Every value is in [units].
+ * A forecast for a named location ([Client.getForecast]) or a point
+ * ([Client.getPointForecast]). Every value is in [units].
  */
 @Serializable
 public data class ForecastResponse(
-    /** Where the forecast is for. */
-    public val location: LocationRef,
+    /** Where the forecast is for, with its elevation and named elevations. */
+    public val location: ForecastLocation,
     /** The models and cycles it was blended from. */
     @SerialName("model_run") public val modelRun: ModelRunInfo,
     /** The unit system of every value in this body. */
     public val units: Units,
-    /** The hourly series, daily summaries and snow outlook. */
-    public val forecast: ForecastData,
+    /** (JSON `forecast`) The hourly series, daily summaries and snow outlook. */
+    @SerialName("forecast") public val series: ForecastData,
     /** Whether the live nowcast layer is baked in. */
     @SerialName("nowcast_applied") public val nowcastApplied: Boolean,
     /** The data sources and their credit line. */
@@ -34,8 +34,8 @@ public data class ForecastResponse(
     @SerialName("window_totals") public val windowTotals: List<WindowTotal>? = null,
     /** The options the server applied after its tier clamps. */
     public val applied: AppliedOptions? = null,
-    /** Forecasts at the location's other elevations (ski areas), when asked for. */
-    @SerialName("elevation_forecasts") public val elevationForecasts: List<ElevationForecast>? = null,
+    /** (JSON `elevation_forecasts`) Forecasts at the location's other elevations (ski areas), when asked for. */
+    @SerialName("elevation_forecasts") public val elevations: List<ElevationForecast>? = null,
     /** The live nowcast sources this body was built without. */
     @SerialName("nowcast_unavailable") public val nowcastUnavailable: List<NowcastSource>? = null,
     /** Which member variables `members` carries, when members were asked for. */
@@ -48,6 +48,13 @@ public data class ForecastResponse(
     public val point: PointInfo? = null,
     /** "Right now", read off the served hour nearest the request (nowcast layer only). */
     public val current: CurrentConditions? = null,
+    /** The avalanche center's rating for the forecast zone the location is in, when one covers it. */
+    public val avalanche: AvalancheForecast? = null,
+    /**
+     * The snow on the ground at the location's own point at the hour the request is served, from the snowpack
+     * model.
+     */
+    @SerialName("snow_on_ground") public val snowOnGround: SnowOnGround? = null,
 ) : ApiResponse {
     @Transient
     override var meta: ResponseMeta = ResponseMeta.None
@@ -81,6 +88,13 @@ public data class ForecastData(
     public val daily: List<DailyForecast>? = null,
     /** Rolling snow totals for common windows (present exactly when [daily] is). */
     @SerialName("snow_outlook") public val snowOutlook: SnowOutlook? = null,
+    /** Rolling LIQUID totals over `snow_outlook`'s windows (24 h, 48 h, 72 h, 7 days), with their ranges. */
+    @SerialName("precipitation_outlook") public val precipitationOutlook: PrecipOutlook? = null,
+    /**
+     * Present only with `members=plume`, which serves it INSTEAD of `timeseries`, `daily`, `snow_outlook` and
+     * `precipitation_outlook`.
+     */
+    public val plume: MemberPlume? = null,
 )
 
 /**
@@ -99,6 +113,8 @@ public data class SnowOutlook(
     @SerialName("overnight_4pm_9am") public val overnight4pm9am: Double? = null,
     /** The range of each window's total, from each member's own total. */
     public val quantiles: SnowOutlookQuantiles? = null,
+    /** Sum of the hourly snowfall means over the first 72 h (the favorites' "next 3 days"); `null` when not covered. */
+    @SerialName("next_72h") public val next72h: Double? = null,
 )
 
 /** The range of each snow-outlook window's total; a window is `null` when not covered. */
@@ -110,6 +126,8 @@ public data class SnowOutlookQuantiles(
     @SerialName("next_48h") public val next48h: Quantiles? = null,
     /** The next 7 days. */
     @SerialName("next_7d") public val next7d: Quantiles? = null,
+    /** The next 72 hours; `null` when not covered. */
+    @SerialName("next_72h") public val next72h: Quantiles? = null,
 )
 
 /** One forecast hour. */
@@ -149,6 +167,24 @@ public data class TimeSeriesPoint(
     @SerialName("cumulative_precipitation") public val cumulativePrecipitation: Double? = null,
     /** The headline's running snowfall total, served. */
     @SerialName("cumulative_snowfall") public val cumulativeSnowfall: Double? = null,
+    /**
+     * Whether precipitation was MEASURED in this hour: MRMS published a radar accumulation for this clock hour (the
+     * whole hour just ended, the quarters published so far of the hour in progress, or an older hour whose
+     * measurement is kept) and it is served above 0: ...
+     */
+    public val measured: Boolean,
+    /** The hour's snow character. */
+    @SerialName("snow_character") public val snowCharacter: SnowCharacter? = null,
+    /** The members' spread at this hour (temperature, snow level, SLR, wind). */
+    @SerialName("members_spread") public val membersSpread: MembersSpread? = null,
+    /**
+     * The members' 6-HOUR totals ending at this hour -- per quantity (`precipitation`, `snowfall`), the Quantiles
+     * of every member's total over `(valid_time - 6 h, valid_time]`: the violin of a Utah-style plume, one per 6 h
+     * period.
+     */
+    @SerialName("members_6h") public val members6h: MembersCumulative? = null,
+    /** The hour's mean precipitation split by phase. */
+    @SerialName("precipitation_by_type") public val precipitationByType: PrecipitationByType? = null,
 )
 
 /** One hour's distributions; every one is in the request's units. */
@@ -187,6 +223,11 @@ public data class EnsembleStats(
     public val cape: Quantiles? = null,
     /** Relative humidity, percent. */
     @SerialName("relative_humidity") public val relativeHumidity: Quantiles? = null,
+    /**
+     * The snow level on the NWS scale (m MSL, or ft with `units=imperial`): the height of the 0.5 C wet-bulb, where
+     * falling snow starts to mix with rain.
+     */
+    @SerialName("snow_level_wet_bulb") public val snowLevelWetBulb: Quantiles? = null,
 )
 
 /** A clockwise arc on the compass, degrees; [to] may be less than [from] across north. */
@@ -295,6 +336,12 @@ public data class ModelMean(
     public val snowfall: Quantiles? = null,
     /** `true` when these statistics were interpolated between the model's native steps. */
     public val interpolated: Boolean? = null,
+    /**
+     * The model's own snow level on the NWS scale (the height of the 0.5 C wet-bulb), as
+     * `EnsembleStats.snow_level_wet_bulb` is the blend's: its `snow_level` with every quantile raised by 275 m (901
+     * ft), a quantile at `0` left at `0`.
+     */
+    @SerialName("snow_level_wet_bulb") public val snowLevelWetBulb: Quantiles? = null,
 )
 
 /** One model's members at an hour. */
@@ -302,15 +349,15 @@ public data class ModelMean(
 public data class ModelMembers(
     /** The model id. */
     public val id: String,
-    /** Its members. */
-    public val members: List<MemberForecast>,
+    /** (JSON `members`) Its members. */
+    @SerialName("members") public val items: List<MemberForecast>,
 )
 
 /** One ensemble member at one hour; `null` means the member published nothing. */
 @Serializable
 public data class MemberForecast(
-    /** The member's position on its model's ensemble axis, from 0. */
-    @SerialName("member_id") public val memberId: Int,
+    /** (JSON `member_id`) The member's position on its model's ensemble axis, from 0. */
+    @SerialName("member_id") public val id: Int,
     /** Temperature. */
     public val temperature: Double? = null,
     /** The total over the [precipitationHours] ending at this hour. */
@@ -331,15 +378,21 @@ public data class MemberForecast(
     @SerialName("cumulative_precipitation") public val cumulativePrecipitation: Double? = null,
     /** This member's running snowfall total over the served window. */
     @SerialName("cumulative_snowfall") public val cumulativeSnowfall: Double? = null,
+    /**
+     * This member's snow level on the NWS scale (the height of the 0.5 C wet-bulb; see
+     * `EnsembleStats.snow_level_wet_bulb`): its `snow_level` raised by the same fixed 275 m (901 ft), a level at
+     * `0` (snow to sea level) left at `0`.
+     */
+    @SerialName("snow_level_wet_bulb") public val snowLevelWetBulb: Double? = null,
 )
 
 /** The distribution of the members' running totals at an hour. */
 @Serializable
 public data class MembersCumulative(
     /** Running precipitation totals. */
-    public val precipitation: Quantiles? = null,
+    public val precipitation: MemberQuantiles? = null,
     /** Running snowfall totals. */
-    public val snowfall: Quantiles? = null,
+    public val snowfall: MemberQuantiles? = null,
 )
 
 /** A day's summary over one local calendar date. */
@@ -395,6 +448,39 @@ public data class DailyForecast(
     @SerialName("storm_orientation_description") public val stormOrientationDescription: String? = null,
     /** The seasonal temperature normal for the date. */
     @SerialName("temperature_climatology") public val temperatureClimatology: DayClimatology? = null,
+    /**
+     * Present only on a part day -- the leading date of a run whose reference init falls after its local midnight
+     * (today, for most cycles) -- and absent on a whole day.
+     */
+    @SerialName("covered_from") public val coveredFrom: String? = null,
+    /**
+     * Present only on a day part of which is a measurement -- the leading date, when the radar (MRMS radar-only)
+     * measured hours between its local midnight and the reference init -- and absent otherwise.
+     */
+    @SerialName("measured_precipitation") public val measuredPrecipitation: MeasuredPrecipitation? = null,
+    /** The day's snow character. */
+    @SerialName("snow_character") public val snowCharacter: SnowCharacter? = null,
+    /**
+     * The day's snow-to-liquid ratio, to one decimal: the ratio `snow_character` classifies on a day that is not
+     * `wet`.
+     */
+    public val slr: Double? = null,
+    /**
+     * The snow level over the day's wet hours -- the hours the day's `precipitation_type` reads (the hours that
+     * serve a precipitation type): the lowest and highest hourly `ensemble.snow_level.mean` and their
+     * precipitation-weighted mean.
+     */
+    @SerialName("snow_level_range") public val snowLevelRange: SnowLevelRange? = null,
+    /** The day's snow level on the NWS scale -- the height of the 0.5 C wet-bulb. */
+    @SerialName("snow_level_wet_bulb") public val snowLevelWetBulb: Quantiles? = null,
+    /** [snowLevelRange] on the NWS scale (wet-bulb), over the same wet hours. */
+    @SerialName("snow_level_wet_bulb_range") public val snowLevelWetBulbRange: SnowLevelRange? = null,
+    /** The day's climate normal at the forecast point. */
+    public val normal: DayNormal? = null,
+    /** The served headline minus the normal. */
+    public val departure: DayDeparture? = null,
+    /** Where the served headline falls in the day's climatological distribution. */
+    public val percentile: DayPercentile? = null,
 )
 
 /** A day's precipitation headline. */
@@ -406,6 +492,8 @@ public data class PrecipDisplay(
     public val chance: Double,
     /** The median amount if wet. */
     public val amount: Double? = null,
+    /** The day's mean snowfall, the served `total_snowfall.mean`, in the request's snow units. */
+    @SerialName("snow_amount") public val snowAmount: Double? = null,
 )
 
 /** A day's wind summary. */
@@ -454,13 +542,16 @@ public data class ProbabilityThresholds(
     @SerialName("hourly_precipitation") public val hourlyPrecipitation: Double,
     /** The hourly snowfall occurrence threshold. */
     @SerialName("hourly_snowfall") public val hourlySnowfall: Double,
-    /** `daily[].precipitation_probability`'s threshold. */
-    @SerialName("daily_precipitation_probability") public val dailyPrecipitationProbability: Double,
-    /** `daily[].precipitation_occurrence_probability`'s threshold. */
+    /** (JSON `daily_precipitation_probability`) `daily[].precipitation_probability`'s threshold. */
+    @SerialName("daily_precipitation_probability") public val dailyPrecipitation: Double,
+    /**
+     * (JSON `daily_precipitation_occurrence_probability`) `daily[].precipitation_occurrence_probability`'s
+     * threshold.
+     */
     @SerialName("daily_precipitation_occurrence_probability")
-    public val dailyPrecipitationOccurrenceProbability: Double,
-    /** `daily[].snow_probability`'s threshold. */
-    @SerialName("daily_snow_probability") public val dailySnowProbability: Double,
+    public val dailyPrecipitationOccurrence: Double,
+    /** (JSON `daily_snow_probability`) `daily[].snow_probability`'s threshold. */
+    @SerialName("daily_snow_probability") public val dailySnow: Double,
 )
 
 /** The options the server applied, after its tier clamps. */
@@ -503,13 +594,13 @@ public data class ProbabilityResult(
     /** The window's end (ISO 8601, exclusive). */
     public val to: String? = null,
     /**
-     * The share of members meeting the term, 0..1. `null` (absent, never 0) when the
+     * (JSON `probability`) The share of members meeting the term, 0..1. `null` (absent, never 0) when the
      * forecast does not reach the window's end.
      */
-    public val probability: Double? = null,
+    @SerialName("probability") public val value: Double? = null,
     /** How many members voted. */
     public val members: Int,
-    /** Why [probability] is `null`; `null` when it is not. */
+    /** Why [value] is `null`; `null` when it is not. */
     @SerialName("null_reason") public val nullReason: NullReason? = null,
 )
 
@@ -520,10 +611,10 @@ public data class WindowTotal(
     public val term: String,
     /** [Variable.Precipitation] or [Variable.Snowfall] (the terms this SDK sends). */
     public val variable: Variable,
-    /** The window's first hour. */
-    @SerialName("window_start_hours") public val windowStartHours: Int,
-    /** The window's end hour (exclusive). */
-    @SerialName("window_end_hours") public val windowEndHours: Int,
+    /** (JSON `window_start_hours`) The window's first hour. */
+    @SerialName("window_start_hours") public val startHours: Int,
+    /** (JSON `window_end_hours`) The window's end hour (exclusive). */
+    @SerialName("window_end_hours") public val endHours: Int,
     /** How the window is read: [TotalAggregation.Total] for an amount. */
     public val aggregation: TotalAggregation,
     /** The window's first instant (ISO 8601). */
@@ -536,6 +627,8 @@ public data class WindowTotal(
     public val members: Int,
     /** Why [quantiles] is `null`; `null` when it is not. */
     @SerialName("null_reason") public val nullReason: NullReason? = null,
+    /** How `quantiles` was computed; `null` exactly when `quantiles` is. One of `members`, `ensemble_moments`. */
+    public val method: String? = null,
 )
 
 /** A forecast at one of a location's additional elevations. */
@@ -543,8 +636,8 @@ public data class WindowTotal(
 public data class ElevationForecast(
     /** The elevation's name. */
     public val name: String,
-    /** The elevation, in the request's length unit. */
-    public val elevation: Double,
+    /** (JSON `elevation`) The elevation, in the request's length unit. */
+    @SerialName("elevation") public val height: Double,
     /** Where it was forecast. */
     public val lat: Double,
     /** Where it was forecast. */
@@ -555,6 +648,28 @@ public data class ElevationForecast(
     public val daily: List<DailyForecast>? = null,
     /** Rolling snow totals at this elevation. */
     @SerialName("snow_outlook") public val snowOutlook: SnowOutlook? = null,
+    /**
+     * What the place is called, as `location.elevations[].display_name`; absent where the catalog has no name for
+     * it.
+     */
+    @SerialName("display_name") public val displayName: String? = null,
+    /**
+     * A named spot's own nearby observation sensors, ranked around ITS point and elevation as the location's
+     * `nearest_sensors` are around the location's.
+     */
+    @SerialName("nearest_sensors") public val nearestSensors: List<NearestSensor>? = null,
+    /** Rolling liquid totals at this elevation, as `forecast.precipitation_outlook`. */
+    @SerialName("precipitation_outlook") public val precipitationOutlook: PrecipOutlook? = null,
+    /**
+     * This elevation's members in columns, as `forecast.plume` -- present only with `members=plume`, instead of
+     * `hourly`, `daily`, `snow_outlook` and `precipitation_outlook`.
+     */
+    public val plume: MemberPlume? = null,
+    /**
+     * The snow on the ground at this elevation, as the response's own `snow_on_ground`; absent where no snowpack
+     * column runs for it.
+     */
+    @SerialName("snow_on_ground") public val snowOnGround: SnowOnGround? = null,
 )
 
 /** Columbia Gorge gap flow at the first served hour. */
@@ -617,12 +732,12 @@ public data class CurrentConditions(
     public val time: String,
     /** Temperature (the hour's mean). */
     public val temperature: Double,
-    /** The condition code. */
-    public val condition: Condition,
-    /** The display text. */
-    @SerialName("condition_text") public val conditionText: String,
-    /** The icon hint. */
-    @SerialName("condition_icon") public val conditionIcon: ConditionIcon,
+    /** (JSON `condition`) The condition code. */
+    @SerialName("condition") public val code: Condition,
+    /** (JSON `condition_text`) The display text. */
+    @SerialName("condition_text") public val text: String,
+    /** (JSON `condition_icon`) The icon hint. */
+    @SerialName("condition_icon") public val icon: ConditionIcon,
     /** Wind speed. */
     @SerialName("wind_speed") public val windSpeed: Double,
     /** Wind direction, degrees, where the wind blows from. */
@@ -641,15 +756,40 @@ public data class CurrentConditions(
     @SerialName("precipitation_probability") public val precipitationProbability: Double? = null,
     /** The station whose reading anchored the hour. */
     public val station: CurrentStation? = null,
+    /**
+     * The hour in progress's `measured`, the hour `condition` and `precipitation_probability` are read from: the
+     * radar's published accumulation for that clock hour so far is served above 0 (above 0.00 mm and 0.000 in), so
+     * `condition` states the precipitation ...
+     */
+    public val measured: Boolean,
+    /**
+     * Cloud cover, percent (0-100), the mean of the hour in progress's `ensemble.cloud_cover`: the hour `condition`
+     * is read from, so the number and the label describe one hour.
+     */
+    @SerialName("cloud_cover") public val cloudCover: Double? = null,
 )
 
 /** The surface station that anchored a "right now" block. */
 @Serializable
 public data class CurrentStation(
-    /** The station's id in its network, as `nearest_sensors[].station_id`. */
-    @SerialName("station_id") public val stationId: String,
+    /** (JSON `station_id`) The station's id in its network, as `nearest_sensors[].station_id`. */
+    @SerialName("station_id") public val id: String,
     /** The station's name. */
     public val name: String,
     /** When it reported (ISO 8601). */
     @SerialName("observation_time") public val observationTime: String,
+    /** Whether the station reports calm air (no wind direction). */
+    public val calm: Boolean,
+)
+
+/**
+ * Present only on a day part of which is a measurement -- the leading date, when the radar (MRMS radar-only) measured
+ * hours between its local midnight and the reference init -- and absent otherwise.
+ */
+@Serializable
+public data class MeasuredPrecipitation(
+    /** The precipitation the radar measured that day, to [through], in the request's units. */
+    public val amount: Double,
+    /** The end of the measured part of the day (ISO 8601). */
+    public val through: String,
 )

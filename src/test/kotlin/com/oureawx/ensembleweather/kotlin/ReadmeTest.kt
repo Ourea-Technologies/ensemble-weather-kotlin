@@ -45,9 +45,9 @@ class ReadmeTest {
     @Test
     fun `the version is the same everywhere`() {
         val gradle = File(repo, "gradle.properties").readText()
-        assertTrue("sdkVersion=${EnsembleWeather.SDK_VERSION}\n" in gradle)
-        assertTrue("ensemble-weather-kotlin:${EnsembleWeather.SDK_VERSION}\"" in readme)
-        assertTrue("## [${EnsembleWeather.SDK_VERSION}]" in File(repo, "CHANGELOG.md").readText())
+        assertTrue("sdkVersion=${Client.SDK_VERSION}\n" in gradle)
+        assertTrue("ensemble-weather-kotlin:${Client.SDK_VERSION}\"" in readme)
+        assertTrue("## [${Client.SDK_VERSION}]" in File(repo, "CHANGELOG.md").readText())
     }
 
     /** The "Probabilities, not single numbers" snippet, compiled (it runs against a stub). */
@@ -55,7 +55,7 @@ class ReadmeTest {
     fun `the probabilities snippet compiles and runs`() =
         runTest {
             val body = File(VectorsTest.VECTORS, "bodies/forecast-metric.json").readBytes()
-            val ourea = EnsembleWeather { transport = HttpTransport { HttpResponse(200, emptyMap(), body) } }
+            val ourea = Client { transport = HttpTransport { HttpResponse(200, emptyMap(), body) } }
             val f =
                 ourea.getForecast("or/mt-hood-meadows") {
                     chance(
@@ -66,12 +66,12 @@ class ReadmeTest {
                 }
             for (p in f.probabilities.orEmpty()) {
                 println(
-                    "${p.variable} ${p.op} ${p.threshold} h${p.windowStartHours}-${p.windowEndHours}: ${p.probability}",
+                    "${p.variable} ${p.op} ${p.threshold} h${p.windowStartHours}-${p.windowEndHours}: ${p.value}",
                 )
             }
             val storm = f.windowTotals?.first()?.quantiles
             val spread =
-                f.forecast.timeseries
+                f.series.timeseries
                     ?.first()
                     ?.ensemble
                     ?.temperature

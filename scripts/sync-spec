@@ -27,10 +27,24 @@ if [[ -n "${OUREA_SPEC_REPO:-}" ]]; then
 else
   repo="$work/repo"
   git init -q "$repo"
-  git -C "$repo" fetch -q --depth 1 "$remote" "$ref" 2>/dev/null \
-    || git -C "$repo" fetch -q "$remote"
+  # A tag or a full SHA fetches directly (FETCH_HEAD). A short SHA cannot be fetched by name, so then fetch every
+  # branch, tag and pull-request head and resolve the ref among them; never fall back to the default branch.
+  if git -C "$repo" fetch -q --depth 1 "$remote" "$ref" 2>/dev/null; then
+    direct=true
+  else
+    direct=false
+    git -C "$repo" fetch -q "$remote" '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*' \
+      '+refs/pull/*/head:refs/remotes/pull/*'
+  fi
 fi
-commit="$(git -C "$repo" rev-parse --verify "${ref}^{commit}" 2>/dev/null || git -C "$repo" rev-parse --verify FETCH_HEAD)"
+if ! commit="$(git -C "$repo" rev-parse --verify -q "${ref}^{commit}")"; then
+  if [[ "${direct:-false}" == true ]]; then
+    commit="$(git -C "$repo" rev-parse --verify FETCH_HEAD)"
+  else
+    echo "ensemble-weather-spec has no commit $ref" >&2
+    exit 1
+  fi
+fi
 mkdir -p "$work/spec"
 git -C "$repo" archive "$commit" | tar -x -C "$work/spec"
 printf '%s\n' "$ref" > "$work/spec/VERSION"

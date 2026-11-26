@@ -11,7 +11,11 @@ public sealed interface ApiResponse {
     public val meta: ResponseMeta
 }
 
-/** Attaches the metadata of the response that produced this body (once, before it is returned). */
+/**
+ * Attaches the metadata of the response that produced this body (once, before it is returned). One branch per
+ * response type, each keeping its setter internal, so the complexity is the type count.
+ */
+@Suppress("CyclomaticComplexMethod")
 internal fun ApiResponse.attach(meta: ResponseMeta) {
     when (this) {
         is ForecastResponse -> this.meta = meta
@@ -27,6 +31,14 @@ internal fun ApiResponse.attach(meta: ResponseMeta) {
         is PublicCatalogStationDetail -> this.meta = meta
         is AttributionRegistry -> this.meta = meta
         is RunsResponse -> this.meta = meta
+        is ExploreResponse -> this.meta = meta
+        is CompositionResponse -> this.meta = meta
+        is SeasonResponse -> this.meta = meta
+        is SnowTrendResponse -> this.meta = meta
+        is SnowpackResponse -> this.meta = meta
+        is SnowpackPlumeResponse -> this.meta = meta
+        is AlertOutlineCollection -> this.meta = meta
+        is AvalancheZoneCollection -> this.meta = meta
     }
 }
 

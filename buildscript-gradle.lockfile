@@ -1,13 +1,13 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
-com.fasterxml.jackson.core:jackson-annotations:2.15.3=classpath
-com.fasterxml.jackson.core:jackson-core:2.15.3=classpath
-com.fasterxml.jackson.core:jackson-databind:2.15.3=classpath
-com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.15.3=classpath
-com.fasterxml.jackson.module:jackson-module-kotlin:2.15.3=classpath
-com.fasterxml.jackson:jackson-bom:2.15.3=classpath
-com.fasterxml.woodstox:woodstox-core:6.5.1=classpath
+com.fasterxml.jackson.core:jackson-annotations:2.18.11=classpath
+com.fasterxml.jackson.core:jackson-core:2.18.11=classpath
+com.fasterxml.jackson.core:jackson-databind:2.18.11=classpath
+com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.18.11=classpath
+com.fasterxml.jackson.module:jackson-module-kotlin:2.18.11=classpath
+com.fasterxml.jackson:jackson-bom:2.18.11=classpath
+com.fasterxml.woodstox:woodstox-core:7.0.0=classpath
 com.github.spotbugs.snom:spotbugs-gradle-plugin:6.5.13=classpath
 com.github.spotbugs:com.github.spotbugs.gradle.plugin:6.5.13=classpath
 com.google.code.gson:gson:2.11.0=classpath
@@ -31,8 +31,8 @@ io.github.detekt.sarif4k:sarif4k-jvm:0.6.0=classpath
 io.github.detekt.sarif4k:sarif4k:0.6.0=classpath
 org.codehaus.mojo:animal-sniffer-annotations:1.24=classpath
 org.codehaus.mojo:animal-sniffer:1.24=classpath
-org.codehaus.woodstox:stax2-api:4.2.1=classpath
-org.freemarker:freemarker:2.3.32=classpath
+org.codehaus.woodstox:stax2-api:4.2.2=classpath
+org.freemarker:freemarker:2.3.35=classpath
 org.jetbrains.dokka:dokka-core:2.2.0=classpath
 org.jetbrains.dokka:dokka-gradle-plugin:2.2.0=classpath
 org.jetbrains.dokka:org.jetbrains.dokka.gradle.plugin:2.2.0=classpath

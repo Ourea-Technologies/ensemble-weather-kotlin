@@ -33,7 +33,7 @@ which CI runs on every change:
 // Quickstart: an anonymous forecast for Mt. Hood Meadows, Oregon (no API key).
 // Prints the next 24 hours' temperature as a p10-p90 range, and the chance of
 // at least 6 in (15 cm) of snow in the next 24 hours.
-import com.oureawx.ensembleweather.kotlin.EnsembleWeather
+import com.oureawx.ensembleweather.kotlin.Client
 import com.oureawx.ensembleweather.kotlin.Variable
 import com.oureawx.ensembleweather.kotlin.atLeast
 import com.oureawx.ensembleweather.kotlin.inches
@@ -43,21 +43,21 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
 
 suspend fun main() {
-    val ourea = EnsembleWeather()
+    val ourea = Client()
     val forecast =
         ourea.getForecast("or/mt-hood-meadows") {
             chance(Variable.Snowfall atLeast 6.inches within 24.hours)
         }
 
     println("${forecast.location.name}: temperature over the next 24 h (p10 to p90)")
-    val hours = forecast.forecast.timeseries.orEmpty()
+    val hours = forecast.series.timeseries.orEmpty()
     for (hour in hours.take(25)) {
         val range = hour.ensemble.temperature.p10ToP90 ?: continue
         println("  ${hour.validTime}  ${range.low} to ${range.high} ${forecast.units.temperatureLabel}")
     }
 
     val snow = forecast.probabilities?.firstOrNull()
-    val chance = snow?.probability
+    val chance = snow?.value
     if (snow != null && chance != null) {
         val percent = (chance * 100).roundToInt()
         println("Chance of 6 in (15 cm) or more of snow in the next 24 h: $percent% (${snow.members} members)")
@@ -75,7 +75,7 @@ have (Android has no `java.net.http`); see [Android](#android).
 Pass a key in the builder, or set the `OUREA_API_KEY` environment variable:
 
 ```kotlin
-val ourea = EnsembleWeather { apiKey = "ow_..." } // or: OUREA_API_KEY=ow_... in the environment
+val ourea = Client { apiKey = "ow_..." } // or: OUREA_API_KEY=ow_... in the environment
 ```
 
 |                                                      | Anonymous                  | Free key                   | Pro key                                                               |
@@ -108,14 +108,14 @@ val f =
         total(Variable.Snowfall totalWithin 72.hours)
     }
 for (p in f.probabilities.orEmpty()) {
-    println("${p.variable} ${p.op} ${p.threshold} h${p.windowStartHours}-${p.windowEndHours}: ${p.probability} (${p.members} members)")
+    println("${p.variable} ${p.op} ${p.threshold} h${p.windowStartHours}-${p.windowEndHours}: ${p.value} (${p.members} members)")
 }
 
 // A storm total: the distribution of each member's own total over the window.
 val storm = f.windowTotals?.first()?.quantiles // null when the run does not cover the window
 
 // Quantiles: only the ranges the server serves, by name.
-val spread = f.forecast.timeseries?.first()?.ensemble?.temperature?.p10ToP90
+val spread = f.series.timeseries?.first()?.ensemble?.temperature?.p10ToP90
 ```
 
 The SDK never sums, averages or interpolates quantiles, and never derives a
@@ -143,14 +143,84 @@ than `from`), not quantiles. More at
 | [`CurrentAndAlerts.kt`](examples/CurrentAndAlerts.kt)     | current conditions and active alerts for a location                     |
 | [`ErrorHandling.kt`](examples/ErrorHandling.kt)           | catching an out-of-coverage error by its type; reading rate-limit state |
 | [`Units.kt`](examples/Units.kt)                           | the same forecast in metric and imperial                                |
+| [`SnowReport.kt`](examples/SnowReport.kt)                 | `explore` rankings, the season to date and the snowpack forecast        |
 
 Run them all against a local mock of the API with `./gradlew runExamples`, or
 serve the mock with `./gradlew :mock-server:run` and point an example at it with
 `OUREA_BASE_URL=http://127.0.0.1:8787`.
 
+## Operations
+
+One method per API operation (BEHAVIOR.md section 3); every list also has a `Flow`
+that follows the cursor.
+
+| Method                                                        | Operation                                                  |
+| ------------------------------------------------------------- | ---------------------------------------------------------- |
+| `getForecast("or/mt-hood-meadows")`, `getPointForecast(lat, lon)` | `getLocationForecast`, `getPointForecast`              |
+| `getCurrent(location)`, `getPointCurrent(lat, lon)`           | `getCurrentConditions`, `getCurrentByCoordinates`          |
+| `getAlerts(location)`, `getPointAlerts(lat, lon)`             | `getLocationAlerts`, `getAlertsByCoordinates`              |
+| `getNearby(location)`, `getPointNearby(lat, lon)`             | `getNearbyLocations`, `getNearbyByCoordinates`             |
+| `searchLocations(q)` (open route)                             | `searchLocations`                                          |
+| `getLocationsPage(state)`, `locations(state)`                 | `getAllLocations`, `getLocations`                          |
+| `getCatalogLocationsPage()`, `catalogLocations()`, `getCatalogLocation(slug)` | `listCatalogLocations`, `getCatalogLocation` |
+| `getCatalogStationsPage()`, `catalogStations()`, `getCatalogStation(slug)` | `listCatalogStations`, `getCatalogStation`      |
+| `getRuns()`, `runs()`                                         | `getAvailableRuns`                                         |
+| `explore(metric)`, `exploreItems(metric)`                     | `explore`: places ranked by a metric (`ExploreMetric.Snow5d`) |
+| `getComposition()` (open route)                               | `getComposition`: the blend's models and members           |
+| `getSeason(location)`                                         | `getLocationSeason`: observed season-to-date precipitation |
+| `getSnowTrend(location)` (Plus or Pro)                        | `getLocationSnowTrend`: each recent run's daily snowfall   |
+| `getSnowpack(location)`, `getSnowpackPlume(location)` (beta)  | `getLocationSnowpack`, `getLocationSnowpackPlume`          |
+| `getAlertOutlines()`, `getAvalancheZones()` (GeoJSON)         | `getAlertOutlines`, `getAvalancheZones`                    |
+| `getAttribution()` (open route)                               | `getAttribution`                                           |
+
+`members = Members.Plume` on a forecast returns the plume view
+(`series.plume`: each model's members in columns) instead of the hourly series.
+`near` (`LatLon`) and `bbox` (`BoundingBox`) are numbers the SDK checks and
+sends with literal commas. The two GeoJSON bodies keep the API's keys and their
+geometry untouched (`coordinates` is the raw JSON), so they go straight to a map
+library.
+
+## Names that differ from the API's JSON
+
+A JSON field whose name repeats a word of its own type has a shorter name here,
+the same in every Ourea SDK (BEHAVIOR.md section 3.0); its reference doc starts
+with "(JSON `wire`)". Every other field is its JSON name in camelCase.
+
+| Type                                                   | JSON                                               | Kotlin                                      |
+| ------------------------------------------------------ | -------------------------------------------------- | ------------------------------------------- |
+| `ForecastResponse`                                     | `forecast`, `elevation_forecasts`                  | `series`, `elevations`                      |
+| `CurrentResponse`                                      | `current`                                          | `now`                                       |
+| `CurrentConditions`                                    | `condition`, `condition_text`, `condition_icon`    | `code`, `text`, `icon`                      |
+| `CurrentStation`, `MemberForecast`                     | `station_id`, `member_id`                          | `id`                                        |
+| `ProbabilityResult`                                    | `probability`                                      | `value`                                     |
+| `ProbabilityThresholds`                                | `daily_precipitation_probability`, `daily_precipitation_occurrence_probability`, `daily_snow_probability` | `dailyPrecipitation`, `dailyPrecipitationOccurrence`, `dailySnow` |
+| `WindowTotal`                                          | `window_start_hours`, `window_end_hours`           | `startHours`, `endHours`                    |
+| `ModelMembers` (an hour's `members[]`)                 | `members`                                          | `items`                                     |
+| `MemberPlume`                                          | `members`                                          | `pool`                                      |
+| `AlertsResponse`                                       | `alerts`, `alert_count`                            | `items`, `count`                            |
+| `LocationsResponse`, `RunsResponse`                    | `locations`, `runs`                                | `items`                                     |
+| `NearbyLocationsResponse`                              | `location`, `locations`                            | `origin`, `items`                           |
+| `NearbyPointResponse`                                  | `locations`                                        | `items`                                     |
+| `ElevationForecast`, `ElevationSummary`, `SnowTrendElevation` | `elevation`                                 | `height`                                    |
+| `PublicCatalogElevation`                               | `elevation_m`                                      | `heightM`                                   |
+| `PublicCatalogStation`, `PublicCatalogStationDetail`   | `source_station_id`, `station_status`, `station_url` | `sourceId`, `status`, `url`               |
+| `PublicCatalogNearbyStation`                           | `station_status`                                   | `status`                                    |
+| `CatalogTemplateSummary`                               | `template_variant`                                 | `variant`                                   |
+| `CatalogResolvedEntry`                                 | `resolved_locale`                                  | `locale`                                    |
+| `SensorObservation`                                    | `observation_time`                                 | `observedAt`                                |
+| `PassHour`                                             | `snow_level_above_pass`                            | `snowLevelMargin`                           |
+| `PassStatusSegment`                                    | `status`, `status_text`                            | `state`, `text`                             |
+| `AvalancheForecast`                                    | `forecast_url`                                     | `url`                                       |
+| `SeasonTotal`                                          | `total`                                            | `amount`                                    |
+| `SnowTrendDay`                                         | `snow`                                             | `amount`                                    |
+
+Two names follow Kotlin rather than the JSON: `default` is `isDefault`, and an
+alert outline's `class` is `alertClass`. GeoJSON is never renamed: an avalanche
+zone's `properties.forecast_url` is `AvalancheZoneProperties.forecastUrl`.
+
 ## Errors, retries and rate limits
 
-Every error is an `EnsembleWeatherException`, a sealed hierarchy you can catch by
+Every error is an `OureaException`, a sealed hierarchy you can catch by
 type or `when` over. HTTP errors are `ApiException`s carrying `status`, `code`
 (verbatim, even when new), `message`, `requestId`, `rateLimit`, `docUrl` (the
 code's entry on the docs errors page) and, on a 400 about one parameter, `param`;
@@ -160,7 +230,7 @@ answers without a key:
 | Type                        | When                                                                 |
 | --------------------------- | -------------------------------------------------------------------- |
 | `AuthenticationException`   | invalid or missing key (401)                                         |
-| `PermissionException`       | your plan does not allow it, e.g. `PRO_REQUIRED` (403)               |
+| `PermissionException`       | your plan does not allow it: `PRO_REQUIRED`, `PLUS_REQUIRED` (403)   |
 | `NotFoundException`         | no such location or route (404, 410)                                 |
 | `InvalidRequestException`   | the server rejected a parameter (400)                                |
 | `OutsideCoverageException`  | `OUTSIDE_COVERAGE` (404): the point is outside the domain            |
@@ -168,7 +238,7 @@ answers without a key:
 | `UnavailableException`      | the server could not answer (5xx)                                    |
 | `ConnectionException`       | no response: DNS, TLS, reset, or the 30 s per-attempt timeout        |
 | `ResponseFormatException`   | a 2xx body the SDK cannot read, or an answer missing a term you asked |
-| `UsageException`            | refused before sending: an invalid term or location                  |
+| `UsageException`            | refused before sending: an invalid term, location, `near` or `bbox`  |
 
 ```kotlin
 try {
@@ -211,7 +281,7 @@ class OkHttpTransport(private val client: OkHttpClient) : HttpTransport {
     }
 }
 
-val ourea = EnsembleWeather {
+val ourea = Client {
     transport = OkHttpTransport(OkHttpClient.Builder().followRedirects(false).followSslRedirects(false).build())
 }
 ```

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.TestFactory
 import org.yaml.snakeyaml.LoaderOptions
 import org.yaml.snakeyaml.Yaml
 import java.io.File
+import java.lang.reflect.Modifier
 import java.net.URI
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -51,7 +52,7 @@ class SpecDriftTest {
     // ---- Operations -----------------------------------------------------------------------
 
     /** Every in-scope operation, called with every option it has. */
-    private val calls: Map<String, suspend (EnsembleWeather) -> Unit> =
+    private val calls: Map<String, suspend (Client) -> Unit> =
         mapOf(
             "getLocationForecast" to { c ->
                 c.getForecast("or/x") {
@@ -72,8 +73,51 @@ class SpecDriftTest {
                     county = "Hood River"
                     type = LocationType.SkiArea
                     limit = 5
+                    sort = ExploreMetric.Snow5d
+                    order = SortOrder.Ascending
+                    near = LatLon(45.3, -121.7)
+                    radiusKm = 50.0
+                    units = Units.Kelvin
                 }
             },
+            "explore" to { c ->
+                c.explore(ExploreMetric.BaseDepth) {
+                    order = SortOrder.Ascending
+                    type = LocationType.SkiArea
+                    state = "OR"
+                    near = LatLon(45.3, -121.7)
+                    radiusKm = 50.0
+                    elevationMin = 1000.0
+                    elevationMax = 2000.0
+                    points = ExplorePoints.All
+                    limit = 5
+                    cursor = "c"
+                    units = Units.Kelvin
+                }
+            },
+            "getComposition" to { c -> c.getComposition() },
+            "getLocationSeason" to { c ->
+                c.getSeason("or/x") {
+                    waterYear = 2027
+                    include = listOf("daily")
+                    units = Units.Kelvin
+                }
+            },
+            "getLocationSnowTrend" to { c ->
+                c.getSnowTrend("or/x") {
+                    elevation = "base"
+                    units = Units.Kelvin
+                }
+            },
+            "getLocationSnowpack" to { c -> c.getSnowpack("or/x") { units = Units.Kelvin } },
+            "getLocationSnowpackPlume" to { c -> c.getSnowpackPlume("or/x") { units = Units.Kelvin } },
+            "getAlertOutlines" to { c ->
+                c.getAlertOutlines {
+                    classes = listOf(AlertClass.Winter, AlertClass.Wind)
+                    bbox = BoundingBox(-125.0, 41.0, -116.0, 49.0)
+                }
+            },
+            "getAvalancheZones" to { c -> c.getAvalancheZones() },
             "getAllLocations" to { c -> c.getLocationsPage { allListOptions() } },
             "getLocations" to { c -> c.getLocationsPage("or") { allListOptions() } },
             "listCatalogLocations" to { c ->
@@ -125,7 +169,7 @@ class SpecDriftTest {
                 runTest {
                     val sent = mutableListOf<HttpRequest>()
                     val client =
-                        EnsembleWeather {
+                        Client {
                             apiKey = "ow_k"
                             units = Units.Imperial
                             transport =
@@ -243,6 +287,89 @@ class SpecDriftTest {
         }
     }
 
+    // ---- Names (BEHAVIOR.md section 3.0) ----------------------------------------------------
+
+    /**
+     * Every model field is its wire name in camelCase, except the renames of the pinned BEHAVIOR.md 3.0 table,
+     * which each model applies (so a new row is enforced here), and the Kotlin idioms in [IDIOMS]. A rename the
+     * table does not list fails too.
+     */
+    @Test
+    fun `every field has its wire name or the SDK name of the BEHAVIOR_md rename table`() {
+        val table = renameTable()
+        val problems = mutableListOf<String>()
+        val applied = mutableSetOf<String>()
+        val seen = mutableSetOf<String>()
+        ROOTS.values.forEach { checkNames(it.descriptor, table, problems, applied, seen) }
+        table
+            .flatMap { (type, rows) -> rows.keys.map { "$type.$it" } }
+            .filter { it !in applied }
+            .forEach { problems += "$it: in the BEHAVIOR.md table, but no model has it" }
+        assertTrue(problems.isEmpty(), problems.joinToString("\n"))
+        assertTrue(applied.size >= MIN_RENAMES, "only ${applied.size} renames found in the table")
+    }
+
+    private fun checkNames(
+        descriptor: SerialDescriptor,
+        table: Map<String, Map<String, String>>,
+        problems: MutableList<String>,
+        applied: MutableSet<String>,
+        seen: MutableSet<String>,
+    ) {
+        when (descriptor.kind) {
+            StructureKind.LIST, StructureKind.MAP -> {
+                (0 until descriptor.elementsCount).forEach {
+                    checkNames(descriptor.getElementDescriptor(it), table, problems, applied, seen)
+                }
+            }
+
+            StructureKind.CLASS -> {
+                val name = descriptor.serialName.removeSuffix("?")
+                if (!name.startsWith(MODEL_PACKAGE) || !seen.add(name)) return
+                val type = Class.forName(name)
+                // A data class's backing fields, in constructor order (meta is the body's, not the wire's).
+                val fields = type.declaredFields.filter { !Modifier.isStatic(it.modifiers) && it.name != "meta" }
+                val rows = table[type.simpleName].orEmpty()
+                for (i in 0 until descriptor.elementsCount) {
+                    val wire = descriptor.getElementName(i)
+                    val sdk = rows[wire]?.also { applied += "${type.simpleName}.$wire" }
+                    val want = sdk?.let(::camel) ?: IDIOMS[wire] ?: camel(wire)
+                    val got = fields.getOrNull(i)?.name
+                    if (got != want) problems += "${type.simpleName}.$wire is `$got` in Kotlin, want `$want`"
+                    checkNames(descriptor.getElementDescriptor(i), table, problems, applied, seen)
+                }
+            }
+
+            else -> {}
+        }
+    }
+
+    /** The rename table of the pinned BEHAVIOR.md section 3.0, by the Kotlin class that holds each field. */
+    private fun renameTable(): Map<String, Map<String, String>> {
+        val text = File(VectorsTest.SPEC, "BEHAVIOR.md").readText()
+        val rows =
+            text
+                .substringAfter("| Schema (where the field sits) | Wire name | SDK name |")
+                .substringBefore("\n\n")
+                .lines()
+                .filter { it.startsWith("| `") }
+        val table = mutableMapOf<String, MutableMap<String, String>>()
+        val code = Regex("`([^`]+)`")
+        for (row in rows) {
+            val (schemas, wires, sdks) =
+                row.trim('|').split('|').map { cell -> code.findAll(cell).map { it.groupValues[1] }.toList() }
+            for (schema in schemas) {
+                val type = INLINE_TYPES[schema] ?: schema
+                if (type in NOT_MODELS) continue
+                wires.zip(sdks).forEach { (wire, sdk) -> table.getOrPut(type) { mutableMapOf() }[wire] = sdk }
+            }
+        }
+        assertTrue(table.isNotEmpty(), "no rename table in spec/BEHAVIOR.md")
+        return table
+    }
+
+    private fun camel(snake: String): String = snake.replace(Regex("_([a-z0-9])")) { it.groupValues[1].uppercase() }
+
     // ---- Examples ---------------------------------------------------------------------
 
     @TestFactory
@@ -258,8 +385,10 @@ class SpecDriftTest {
                         }
                             ?: it
                     }
+                val media = r["content"] as Map<String, Any?>?
                 val content =
-                    (r["content"] as Map<String, Any?>?)?.get("application/json") as Map<String, Any?>? ?: continue
+                    (media?.get("application/json") ?: media?.get("application/geo+json")) as Map<String, Any?>?
+                        ?: continue
                 val examples =
                     listOfNotNull(content["example"]?.let { "example" to it }) +
                         (content["examples"] as Map<String, Any?>?).orEmpty().map { (name, ex) ->
@@ -294,8 +423,8 @@ class SpecDriftTest {
         }
         assertTrue(violations.isEmpty(), "$label breaks its own schema:\n${violations.joinToString("\n")}")
         val serializer = ROOTS.getValue(schemaName) as KSerializer<Any>
-        val decoded = EnsembleWeather.JSON.decodeFromJsonElement(serializer, example)
-        val encoded = EnsembleWeather.JSON.encodeToJsonElement(serializer, decoded)
+        val decoded = Client.JSON.decodeFromJsonElement(serializer, example)
+        val encoded = Client.JSON.encodeToJsonElement(serializer, decoded)
         assertJsonEquivalent(example, encoded, label)
     }
 
@@ -307,7 +436,7 @@ class SpecDriftTest {
         example: JsonObject,
     ) = runTest {
         val client =
-            EnsembleWeather {
+            Client {
                 maxRetries = 0
                 transport = HttpTransport { HttpResponse(status, emptyMap(), example.toString().toByteArray()) }
             }
@@ -325,7 +454,7 @@ class SpecDriftTest {
         val expected =
             when (code) {
                 "OUTSIDE_COVERAGE" -> OutsideCoverageException::class
-                "PRO_REQUIRED" -> PermissionException::class
+                "PRO_REQUIRED", "PLUS_REQUIRED" -> PermissionException::class
                 "INVALID_API_KEY" -> AuthenticationException::class
                 "TIMEOUT" -> UnavailableException::class
                 "NOT_FOUND" -> NotFoundException::class
@@ -387,15 +516,16 @@ class SpecDriftTest {
                 "enum" to merged.firstNotNullOfOrNull { it["enum"] },
             ).filterValues { it != null }
         }
-        (schema["anyOf"] as List<Map<String, Any?>>?)?.let { options ->
-            options.firstOrNull { it["type"] != "null" }?.let { return resolve(it) }
+        (schema["anyOf"] ?: schema["oneOf"] as List<Map<String, Any?>>?)?.let { options ->
+            (options as List<Map<String, Any?>>).firstOrNull { it["type"] != "null" }?.let { return resolve(it) }
         }
         return schema
     }
 
     private fun isNullable(schema: Map<String, Any?>): Boolean =
         (schema["type"] as? List<*>)?.contains("null") == true ||
-            (schema["anyOf"] as List<Map<String, Any?>>?)?.any { it["type"] == "null" } == true ||
+            ((schema["anyOf"] ?: schema["oneOf"]) as List<Map<String, Any?>>?)
+                ?.any { it["type"] == "null" } == true ||
             (schema["\$ref"] as String?)?.let { isNullable(schemas.map(it.substringAfterLast('/'))) } == true
 
     private fun properties(schema: Map<String, Any?>): Map<String, Map<String, Any?>> =
@@ -455,7 +585,7 @@ class SpecDriftTest {
         maxHours = 48
         includePast = true
         models = true
-        members = true
+        members = Members.Hourly
         daily = false
         maxDays = 3
         hourly = false
@@ -492,6 +622,22 @@ class SpecDriftTest {
     companion object {
         private const val HTTP_ERROR = 400
         private const val MIN_EXAMPLES = 50
+        private const val MIN_RENAMES = 40
+        private const val MODEL_PACKAGE = "com.oureawx.ensembleweather.kotlin."
+
+        /** Kotlin names that are not the camelCase of the wire name, for a language reason, not a rename. */
+        private val IDIOMS = mapOf("default" to "isDefault", "class" to "alertClass")
+
+        /** The table's inline objects, by the Kotlin class that models each. */
+        private val INLINE_TYPES =
+            mapOf(
+                "CurrentConditions.station" to "CurrentStation",
+                "TimeSeriesPoint.members[]" to "ModelMembers",
+                "SnowTrendResponse.elevation" to "SnowTrendElevation",
+            )
+
+        /** `ErrorResponse.error` is the SDK error's `code`, not a model field. */
+        private val NOT_MODELS = setOf("ErrorResponse")
 
         /** BEHAVIOR.md section 3: a web-map credential, out of SDK scope for 0.x. */
         private val OUT_OF_SCOPE = setOf("getMapsToken")
@@ -512,6 +658,14 @@ class SpecDriftTest {
                 "PublicCatalogStationDetail" to serializer<PublicCatalogStationDetail>(),
                 "AttributionRegistry" to serializer<AttributionRegistry>(),
                 "RunsResponse" to serializer<RunsResponse>(),
+                "ExploreResponse" to serializer<ExploreResponse>(),
+                "CompositionResponse" to serializer<CompositionResponse>(),
+                "SeasonResponse" to serializer<SeasonResponse>(),
+                "SnowTrendResponse" to serializer<SnowTrendResponse>(),
+                "SnowpackResponse" to serializer<SnowpackResponse>(),
+                "SnowpackPlumeResponse" to serializer<SnowpackPlumeResponse>(),
+                "AlertOutlineCollection" to serializer<AlertOutlineCollection>(),
+                "AvalancheZoneCollection" to serializer<AvalancheZoneCollection>(),
             )
 
         private val RESPONSE_SCHEMA =
@@ -519,6 +673,9 @@ class SpecDriftTest {
                 "getLocationForecast" to "ForecastResponse",
                 "getPointForecast" to "ForecastResponse",
                 "getAttribution" to "AttributionRegistry",
+                "getComposition" to "CompositionResponse",
+                "getAlertOutlines" to "AlertOutlineCollection",
+                "getAvalancheZones" to "AvalancheZoneCollection",
             )
 
         /**
@@ -531,17 +688,22 @@ class SpecDriftTest {
             where: String,
         ): Boolean = descriptor.serialName.removeSuffix("?").endsWith(".Quantiles")
 
-        /** Free-form JSON (`JsonElement`) and the `kind`-tagged FreezingLevel: checked by their own tests. */
+        /**
+         * Free-form JSON (`JsonElement`), raw GeoJSON coordinates (nested arrays, passed through untouched) and
+         * the `kind`-tagged FreezingLevel: checked by their own tests.
+         */
         private val OPAQUE: Set<String> =
             setOf(
                 "ForecastResponse.forecast.timeseries[].freezing_level",
                 "ForecastResponse.elevation_forecasts[].hourly[].freezing_level",
                 "CurrentResponse.nowcast_hours[].freezing_level",
+                "AlertOutlineCollection.features[].geometry.coordinates",
+                "AvalancheZoneCollection.features[].geometry.coordinates",
             )
 
         /**
          * Spec examples that break their own schema (report each to the spec repo), so no
-         * conforming model can read them. None at 8b85fea.
+         * conforming model can read them. None at 7954268.
          */
         private val INVALID_EXAMPLES = emptySet<String>()
     }

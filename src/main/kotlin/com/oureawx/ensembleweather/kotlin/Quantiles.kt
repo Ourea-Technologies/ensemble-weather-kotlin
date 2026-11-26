@@ -103,7 +103,7 @@ public data class LocationRef(
 /** The data sources a response drew on, and the credit their licences ask for. */
 @Serializable
 public data class ResponseAttribution(
-    /** Source ids from [EnsembleWeather.getAttribution]. */
+    /** Source ids from [Client.getAttribution]. */
     public val sources: List<String>,
     /** One credit line per provider; carry it with any redistributed output. */
     public val credit: String,
@@ -120,4 +120,14 @@ public data class ModelEntry(
     public val cycle: String? = null,
     /** How many of its members the forecast carries. */
     public val members: Int? = null,
+    /**
+     * The `member_id`s of this model's members served for display only, on a response that asks for members: `rrfs`
+     * 1..5 are the RRFS ensemble's m001..m005, beside the deterministic run (0).
+     */
+    @SerialName("display_members") public val displayMembers: List<Int>? = null,
+    /**
+     * How the `display_members`' `snowfall` and `cumulative_snowfall` are made, present exactly when
+     * `display_members` is. One of `borrowed_from_deterministic`.
+     */
+    @SerialName("display_members_snowfall") public val displayMembersSnowfall: String? = null,
 )

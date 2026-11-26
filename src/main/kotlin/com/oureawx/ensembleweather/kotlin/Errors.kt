@@ -18,7 +18,7 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * No message or string form ever contains the API key.
  */
-public sealed class EnsembleWeatherException(
+public sealed class OureaException(
     message: String,
     cause: Throwable? = null,
 ) : Exception(message, cause)
@@ -45,7 +45,7 @@ public sealed class ApiException(
     public val docUrl: String?,
     /** On a 400 about one query parameter, its name (`max_hours`, `prob`); else `null`. */
     public val param: String?,
-) : EnsembleWeatherException(message) {
+) : OureaException(message) {
     override fun toString(): String =
         buildString {
             append(this@ApiException::class.simpleName).append(": HTTP ").append(status)
@@ -67,7 +67,7 @@ public class AuthenticationException internal constructor(
 ) : ApiException(status, code, message, requestId, rateLimit, docUrl, param)
 
 /**
- * Your plan does not allow this request (`PRO_REQUIRED`, 403). From a coordinate route
+ * Your plan does not allow this request (`PRO_REQUIRED` or `PLUS_REQUIRED`, 403). From a coordinate route
  * it may name the [nearestLocation] whose forecast answers without a key.
  */
 public class PermissionException internal constructor(
@@ -165,7 +165,7 @@ public class UnavailableException internal constructor(
 public class ConnectionException internal constructor(
     message: String,
     cause: Throwable? = null,
-) : EnsembleWeatherException(message, cause)
+) : OureaException(message, cause)
 
 /**
  * A successful response the SDK could not read: a body that is not the documented
@@ -174,7 +174,7 @@ public class ConnectionException internal constructor(
 public class ResponseFormatException internal constructor(
     message: String,
     cause: Throwable? = null,
-) : EnsembleWeatherException(message, cause)
+) : OureaException(message, cause)
 
 /**
  * Refused before sending: an invalid probability or total term, a malformed
@@ -182,4 +182,4 @@ public class ResponseFormatException internal constructor(
  */
 public class UsageException internal constructor(
     message: String,
-) : EnsembleWeatherException(message)
+) : OureaException(message)

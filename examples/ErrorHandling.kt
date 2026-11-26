@@ -5,14 +5,14 @@
 package examples.errorhandling
 
 import com.oureawx.ensembleweather.kotlin.ApiException
+import com.oureawx.ensembleweather.kotlin.Client
 import com.oureawx.ensembleweather.kotlin.ConnectionException
-import com.oureawx.ensembleweather.kotlin.EnsembleWeather
 import com.oureawx.ensembleweather.kotlin.OutsideCoverageException
 import com.oureawx.ensembleweather.kotlin.PermissionException
 import com.oureawx.ensembleweather.kotlin.RateLimitException
 
 suspend fun main() {
-    val ourea = EnsembleWeather()
+    val ourea = Client()
     try {
         ourea.getPointForecast(lat = 51.5, lon = -0.1)
     } catch (e: OutsideCoverageException) {

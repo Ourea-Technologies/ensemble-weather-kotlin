@@ -5,7 +5,7 @@
 package examples.chanceofsnow
 
 import com.oureawx.ensembleweather.kotlin.Aggregation
-import com.oureawx.ensembleweather.kotlin.EnsembleWeather
+import com.oureawx.ensembleweather.kotlin.Client
 import com.oureawx.ensembleweather.kotlin.Units
 import com.oureawx.ensembleweather.kotlin.Variable
 import com.oureawx.ensembleweather.kotlin.atLeast
@@ -17,7 +17,7 @@ import com.oureawx.ensembleweather.kotlin.within
 import kotlin.time.Duration.Companion.hours
 
 suspend fun main() {
-    val ourea = EnsembleWeather { units = Units.Imperial }
+    val ourea = Client { units = Units.Imperial }
     val forecast =
         ourea.getForecast("or/mt-hood-meadows") {
             chance(
@@ -28,7 +28,7 @@ suspend fun main() {
         }
 
     for (p in forecast.probabilities.orEmpty()) {
-        val chance = p.probability?.let { "${(it * 100).toInt()}%" } ?: "not available yet"
+        val chance = p.value?.let { "${(it * 100).toInt()}%" } ?: "not available yet"
         val window = "hours ${p.windowStartHours}-${p.windowEndHours} (${p.from} to ${p.to})"
         println("${p.variable} ${p.op} ${p.threshold} [${p.aggregation}] over $window: $chance, ${p.members} members")
     }

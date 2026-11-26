@@ -8,7 +8,7 @@ import kotlinx.coroutines.sync.withLock
  * Where the SDK keeps responses for ETag revalidation (BEHAVIOR.md section 10).
  *
  * The cache is on by default ([InMemoryResponseCache]). Set
- * [EnsembleWeather.Builder.cache] to `null` to turn it off, or to your own
+ * [Client.Builder.cache] to `null` to turn it off, or to your own
  * implementation to share entries across processes. A key is the full request URL
  * plus a hash of the API key (never the key itself), so keyed and keyless entries
  * never mix. Implementations must be safe to call from several coroutines at once.

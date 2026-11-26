@@ -51,21 +51,19 @@ internal class Query {
         if (value != null && value != default) params += name to value.toString()
     }
 
-    /** A comma-joined list (each item encoded, so a literal `,` is sent as `%2C`). */
+    /**
+     * A comma list (BEHAVIOR.md section 3.1, rule 5): sorted, de-duplicated, each item encoded (so a `,` inside
+     * an item is `%2C`) and the commas between items sent literally.
+     */
     fun addList(
         name: String,
         values: List<String>?,
         default: List<String>? = null,
     ) {
-        if (!values.isNullOrEmpty() && values != default) params += name to encode(values.joinToString(","))
-    }
-
-    /** A repeated parameter (`capability=a&capability=b`). */
-    fun addRepeated(
-        name: String,
-        values: List<String>?,
-    ) {
-        values?.forEach { params += name to encode(it) }
+        val canonical = values?.distinct()?.sorted()
+        if (!canonical.isNullOrEmpty() && canonical != default) {
+            params += name to canonical.joinToString(",") { encode(it) }
+        }
     }
 
     /** A value already in wire form (`prob`, `totals`: `:` and `,` stay literal). */

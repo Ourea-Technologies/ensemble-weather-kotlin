@@ -3,11 +3,11 @@
 // cold Flow: it fetches the next page (following next_cursor) only as you collect.
 package examples.searchandcatalog
 
-import com.oureawx.ensembleweather.kotlin.EnsembleWeather
+import com.oureawx.ensembleweather.kotlin.Client
 import kotlinx.coroutines.flow.take
 
 suspend fun main() {
-    val ourea = EnsembleWeather()
+    val ourea = Client()
 
     val hits = ourea.searchLocations("hood meadows") { limit = 5 }
     for (hit in hits.items) println("search: ${hit.name} (${hit.key}), ${hit.county} County")

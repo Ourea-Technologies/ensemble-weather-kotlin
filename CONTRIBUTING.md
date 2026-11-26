@@ -24,7 +24,7 @@ cd ensemble-weather-kotlin
 ```
 
 `check` runs the format check, lint, static analysis and every test, including the
-43 shared vectors. If it passes, you are set up.
+58 shared vectors. If it passes, you are set up.
 
 ## The checks
 
@@ -35,7 +35,7 @@ Every one of these runs in CI and must pass before a merge:
 ./gradlew detekt detektMain detektTest # lint, with type resolution (incl. potential-bugs)
 ./gradlew spotbugsMain                 # SpotBugs + Find Security Bugs on the bytecode
 ./gradlew animalsnifferMain            # no JVM API missing on Android API 24
-./gradlew test                         # unit tests, the 43 shared vectors, spec drift (JDK 11)
+./gradlew test                         # unit tests, the 58 shared vectors, spec drift (JDK 11)
 ./gradlew test -PtestJdk=21            # the same on another JDK (CI: 11, 17, 21, 25)
 ./gradlew runExamples                  # every example against the local mock API
 ./gradlew dokkaGenerate                # the API reference, into build/dokka/html
@@ -56,7 +56,7 @@ an example at it with `OUREA_BASE_URL=http://127.0.0.1:8787`).
 
 Use the [bug report form](https://github.com/Ourea-Technologies/ensemble-weather-kotlin/issues/new?template=bug_report.yml). The most useful reports have:
 
-- the SDK version (`EnsembleWeather.SDK_VERSION`) and your runtime: JVM version or
+- the SDK version (`Client.SDK_VERSION`) and your runtime: JVM version or
   Android API level, and the `HttpTransport` you use;
 - a minimal snippet that shows the problem;
 - what you expected and what happened, with the exception's `toString()`;
@@ -131,7 +131,7 @@ Pinned in `gradle/libs.versions.toml` and locked by the `*.lockfile`s
 
 ## Releasing (maintainers)
 
-Bump `sdkVersion` in `gradle.properties` and `EnsembleWeather.SDK_VERSION`, move the
+Bump `sdkVersion` in `gradle.properties` and `Client.SDK_VERSION`, move the
 changelog entries under the new version, and push a `vX.Y.Z` tag on `main`.
 `release.yml` builds and tests again, signs the artifacts and uploads them to the
 Maven Central Portal (`com.oureawx`, verified by DNS TXT record), then creates the
