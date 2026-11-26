@@ -585,7 +585,7 @@ class SpecDriftTest {
         maxHours = 48
         includePast = true
         models = true
-        members = true
+        members = Members.Hourly
         daily = false
         maxDays = 3
         hourly = false

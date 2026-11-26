@@ -19,12 +19,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # settings-gradle.lockfile locks no packages (only `empty=`), and osv-scanner refuses a lockfile it finds
+      # nothing in, so it is not listed.
       - uses: google/osv-scanner-action/osv-scanner-action@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
         with:
           scan-args: |-
             --lockfile=gradle.lockfile
             --lockfile=buildscript-gradle.lockfile
-            --lockfile=settings-gradle.lockfile
             --lockfile=gradle/examples/gradle.lockfile
             --lockfile=mock-server/gradle.lockfile
 

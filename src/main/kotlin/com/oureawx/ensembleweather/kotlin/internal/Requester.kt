@@ -5,9 +5,9 @@ import com.oureawx.ensembleweather.kotlin.ApiException
 import com.oureawx.ensembleweather.kotlin.AuthenticationException
 import com.oureawx.ensembleweather.kotlin.BodyTooLargeException
 import com.oureawx.ensembleweather.kotlin.CachedResponse
+import com.oureawx.ensembleweather.kotlin.Client
 import com.oureawx.ensembleweather.kotlin.ConnectionException
 import com.oureawx.ensembleweather.kotlin.DeprecationNotice
-import com.oureawx.ensembleweather.kotlin.Client
 import com.oureawx.ensembleweather.kotlin.HttpRequest
 import com.oureawx.ensembleweather.kotlin.HttpResponse
 import com.oureawx.ensembleweather.kotlin.HttpTransport

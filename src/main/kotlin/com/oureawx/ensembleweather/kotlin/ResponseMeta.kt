@@ -12,6 +12,8 @@ public sealed interface ApiResponse {
 }
 
 /** Attaches the metadata of the response that produced this body (once, before it is returned). */
+// One branch per response type (each keeps its setter internal), so the complexity is the type count.
+@Suppress("CyclomaticComplexMethod")
 internal fun ApiResponse.attach(meta: ResponseMeta) {
     when (this) {
         is ForecastResponse -> this.meta = meta

@@ -5,8 +5,8 @@
 package examples.errorhandling
 
 import com.oureawx.ensembleweather.kotlin.ApiException
-import com.oureawx.ensembleweather.kotlin.ConnectionException
 import com.oureawx.ensembleweather.kotlin.Client
+import com.oureawx.ensembleweather.kotlin.ConnectionException
 import com.oureawx.ensembleweather.kotlin.OutsideCoverageException
 import com.oureawx.ensembleweather.kotlin.PermissionException
 import com.oureawx.ensembleweather.kotlin.RateLimitException
