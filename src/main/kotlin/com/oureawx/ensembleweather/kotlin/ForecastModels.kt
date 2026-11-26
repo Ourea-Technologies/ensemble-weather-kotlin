@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
 /**
- * A forecast for a named location ([EnsembleWeather.getForecast]) or a point
- * ([EnsembleWeather.getPointForecast]). Every value is in [units].
+ * A forecast for a named location ([Client.getForecast]) or a point
+ * ([Client.getPointForecast]). Every value is in [units].
  */
 @Serializable
 public data class ForecastResponse(

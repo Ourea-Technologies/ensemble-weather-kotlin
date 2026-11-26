@@ -20,7 +20,7 @@ import kotlin.time.Duration.Companion.hours
 @Tag("live")
 @EnabledIfEnvironmentVariable(named = "OUREA_LIVE", matches = "1")
 class LiveContractTest {
-    private val ourea = EnsembleWeather()
+    private val ourea = Client()
 
     @Test
     fun `a named forecast answers its probability terms in order`() =

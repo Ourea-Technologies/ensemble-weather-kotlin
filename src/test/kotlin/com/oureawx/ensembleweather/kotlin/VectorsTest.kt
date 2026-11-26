@@ -96,8 +96,8 @@ class VectorsTest {
         transport: MockTransport,
         warnings: MutableList<DeprecationNotice>,
         scope: TestScope,
-    ): EnsembleWeather =
-        EnsembleWeather {
+    ): Client =
+        Client {
             val env = config["env"]?.jsonObject?.mapValues { it.value.jsonPrimitive.content }.orEmpty()
             environment = { env[it] }
             config["api_key"]?.let { apiKey = it.jsonPrimitive.content }
@@ -113,7 +113,7 @@ class VectorsTest {
         }
 
     private suspend fun perform(
-        base: EnsembleWeather,
+        base: Client,
         call: JsonObject,
     ): Any {
         val client = call["with_api_key"]?.let { key -> base.config { apiKey = key.jsonPrimitive.content } } ?: base
@@ -288,14 +288,14 @@ class VectorsTest {
     private suspend fun outcome(block: suspend () -> Any): Outcome =
         try {
             Outcome(block(), null)
-        } catch (e: EnsembleWeatherException) {
+        } catch (e: OureaException) {
             Outcome(null, e)
         }
 
     private fun checkResult(
         expected: JsonObject,
         outcome: Outcome,
-        client: EnsembleWeather,
+        client: Client,
     ) {
         outcome.error?.let { throw AssertionError("expected a result, got $it", it) }
         val value = assertNotNull(outcome.value)
@@ -406,7 +406,7 @@ class VectorsTest {
                 is AttributionRegistry -> AttributionRegistry.serializer()
                 else -> fail("the runner cannot encode ${value::class.simpleName}")
             } as KSerializer<Any>
-        return EnsembleWeather.JSON.encodeToJsonElement(serializer, value)
+        return Client.JSON.encodeToJsonElement(serializer, value)
     }
 
     private fun navigate(

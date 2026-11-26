@@ -1,7 +1,7 @@
 // Quickstart: an anonymous forecast for Mt. Hood Meadows, Oregon (no API key).
 // Prints the next 24 hours' temperature as a p10-p90 range, and the chance of
 // at least 6 in (15 cm) of snow in the next 24 hours.
-import com.oureawx.ensembleweather.kotlin.EnsembleWeather
+import com.oureawx.ensembleweather.kotlin.Client
 import com.oureawx.ensembleweather.kotlin.Variable
 import com.oureawx.ensembleweather.kotlin.atLeast
 import com.oureawx.ensembleweather.kotlin.inches
@@ -11,7 +11,7 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
 
 suspend fun main() {
-    val ourea = EnsembleWeather()
+    val ourea = Client()
     val forecast =
         ourea.getForecast("or/mt-hood-meadows") {
             chance(Variable.Snowfall atLeast 6.inches within 24.hours)

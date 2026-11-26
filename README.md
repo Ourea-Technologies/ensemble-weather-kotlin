@@ -33,7 +33,7 @@ which CI runs on every change:
 // Quickstart: an anonymous forecast for Mt. Hood Meadows, Oregon (no API key).
 // Prints the next 24 hours' temperature as a p10-p90 range, and the chance of
 // at least 6 in (15 cm) of snow in the next 24 hours.
-import com.oureawx.ensembleweather.kotlin.EnsembleWeather
+import com.oureawx.ensembleweather.kotlin.Client
 import com.oureawx.ensembleweather.kotlin.Variable
 import com.oureawx.ensembleweather.kotlin.atLeast
 import com.oureawx.ensembleweather.kotlin.inches
@@ -43,7 +43,7 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
 
 suspend fun main() {
-    val ourea = EnsembleWeather()
+    val ourea = Client()
     val forecast =
         ourea.getForecast("or/mt-hood-meadows") {
             chance(Variable.Snowfall atLeast 6.inches within 24.hours)
@@ -75,7 +75,7 @@ have (Android has no `java.net.http`); see [Android](#android).
 Pass a key in the builder, or set the `OUREA_API_KEY` environment variable:
 
 ```kotlin
-val ourea = EnsembleWeather { apiKey = "ow_..." } // or: OUREA_API_KEY=ow_... in the environment
+val ourea = Client { apiKey = "ow_..." } // or: OUREA_API_KEY=ow_... in the environment
 ```
 
 |                                                      | Anonymous                  | Free key                   | Pro key                                                               |
@@ -150,7 +150,7 @@ serve the mock with `./gradlew :mock-server:run` and point an example at it with
 
 ## Errors, retries and rate limits
 
-Every error is an `EnsembleWeatherException`, a sealed hierarchy you can catch by
+Every error is an `OureaException`, a sealed hierarchy you can catch by
 type or `when` over. HTTP errors are `ApiException`s carrying `status`, `code`
 (verbatim, even when new), `message`, `requestId`, `rateLimit`, `docUrl` (the
 code's entry on the docs errors page) and, on a 400 about one parameter, `param`;
@@ -211,7 +211,7 @@ class OkHttpTransport(private val client: OkHttpClient) : HttpTransport {
     }
 }
 
-val ourea = EnsembleWeather {
+val ourea = Client {
     transport = OkHttpTransport(OkHttpClient.Builder().followRedirects(false).followSslRedirects(false).build())
 }
 ```

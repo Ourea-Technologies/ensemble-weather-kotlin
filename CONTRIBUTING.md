@@ -56,7 +56,7 @@ an example at it with `OUREA_BASE_URL=http://127.0.0.1:8787`).
 
 Use the [bug report form](https://github.com/Ourea-Technologies/ensemble-weather-kotlin/issues/new?template=bug_report.yml). The most useful reports have:
 
-- the SDK version (`EnsembleWeather.SDK_VERSION`) and your runtime: JVM version or
+- the SDK version (`Client.SDK_VERSION`) and your runtime: JVM version or
   Android API level, and the `HttpTransport` you use;
 - a minimal snippet that shows the problem;
 - what you expected and what happened, with the exception's `toString()`;
@@ -131,7 +131,7 @@ Pinned in `gradle/libs.versions.toml` and locked by the `*.lockfile`s
 
 ## Releasing (maintainers)
 
-Bump `sdkVersion` in `gradle.properties` and `EnsembleWeather.SDK_VERSION`, move the
+Bump `sdkVersion` in `gradle.properties` and `Client.SDK_VERSION`, move the
 changelog entries under the new version, and push a `vX.Y.Z` tag on `main`.
 `release.yml` builds and tests again, signs the artifacts and uploads them to the
 Maven Central Portal (`com.oureawx`, verified by DNS TXT record), then creates the

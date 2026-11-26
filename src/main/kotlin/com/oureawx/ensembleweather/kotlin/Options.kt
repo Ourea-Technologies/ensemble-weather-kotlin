@@ -3,10 +3,10 @@ package com.oureawx.ensembleweather.kotlin
 
 /** Marks the SDK's configuration DSLs, so an inner block cannot reach an outer one by mistake. */
 @DslMarker
-public annotation class EnsembleWeatherDsl
+public annotation class OureaDsl
 
 /**
- * Options for a forecast ([EnsembleWeather.getForecast], [EnsembleWeather.getPointForecast]).
+ * Options for a forecast ([Client.getForecast], [Client.getPointForecast]).
  * Leave an option unset for the API's default; an option set to its default is not sent.
  *
  * ```kotlin
@@ -18,9 +18,9 @@ public annotation class EnsembleWeatherDsl
  * }
  * ```
  */
-@EnsembleWeatherDsl
+@OureaDsl
 public open class ForecastOptions internal constructor() {
-    /** The unit system; defaults to the client's [EnsembleWeather.Builder.units]. */
+    /** The unit system; defaults to the client's [Client.Builder.units]. */
     public var units: Units? = null
 
     /** Hours of the hourly series past the current hour (6..360, default 24; clamped to your tier). */
@@ -99,7 +99,7 @@ public open class ForecastOptions internal constructor() {
 }
 
 /** Options for a named-location forecast: [ForecastOptions] plus [elevations]. */
-@EnsembleWeatherDsl
+@OureaDsl
 public class LocationForecastOptions internal constructor() : ForecastOptions() {
     /**
      * Extra elevations to forecast (ski areas): names from the location's elevations, or
@@ -114,7 +114,7 @@ public class LocationForecastOptions internal constructor() : ForecastOptions() 
 }
 
 /** Options for current conditions. */
-@EnsembleWeatherDsl
+@OureaDsl
 public class CurrentOptions internal constructor() {
     /** The unit system; defaults to the client's. */
     public var units: Units? = null
@@ -130,7 +130,7 @@ public class CurrentOptions internal constructor() {
 }
 
 /** Options for nearby locations. */
-@EnsembleWeatherDsl
+@OureaDsl
 public class NearbyOptions internal constructor() {
     /** The unit system (for elevations); defaults to the client's. */
     public var units: Units? = null
@@ -143,7 +143,7 @@ public class NearbyOptions internal constructor() {
 }
 
 /** Options for a location search. */
-@EnsembleWeatherDsl
+@OureaDsl
 public class SearchOptions internal constructor() {
     /** A hard state filter (code or name). */
     public var state: String? = null
@@ -158,8 +158,8 @@ public class SearchOptions internal constructor() {
     public var limit: Int? = null
 }
 
-/** Options for the location lists ([EnsembleWeather.locations]). */
-@EnsembleWeatherDsl
+/** Options for the location lists ([Client.locations]). */
+@OureaDsl
 public class LocationListOptions internal constructor() {
     /** Only this location type. */
     public var type: LocationType? = null
@@ -174,8 +174,8 @@ public class LocationListOptions internal constructor() {
     public var cursor: String? = null
 }
 
-/** Options for the catalog location list ([EnsembleWeather.catalogLocations]). */
-@EnsembleWeatherDsl
+/** Options for the catalog location list ([Client.catalogLocations]). */
+@OureaDsl
 public class CatalogLocationOptions internal constructor() {
     /** An ISO 3166-2 admin1 filter (`US-OR`). */
     public var admin1: String? = null
@@ -196,8 +196,8 @@ public class CatalogLocationOptions internal constructor() {
     public var cursor: String? = null
 }
 
-/** Options for the catalog station list ([EnsembleWeather.catalogStations]). */
-@EnsembleWeatherDsl
+/** Options for the catalog station list ([Client.catalogStations]). */
+@OureaDsl
 public class CatalogStationOptions internal constructor() {
     /** An ISO 3166-2 admin1 filter. */
     public var admin1: String? = null
@@ -221,8 +221,8 @@ public class CatalogStationOptions internal constructor() {
     public var cursor: String? = null
 }
 
-/** Options for a catalog detail ([EnsembleWeather.getCatalogLocation], [EnsembleWeather.getCatalogStation]). */
-@EnsembleWeatherDsl
+/** Options for a catalog detail ([Client.getCatalogLocation], [Client.getCatalogStation]). */
+@OureaDsl
 public class CatalogDetailOptions internal constructor() {
     /** Opt-in extras: `content`, `template`. */
     public var include: List<String>? = null

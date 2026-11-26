@@ -28,15 +28,15 @@ import kotlin.time.Duration.Companion.seconds
  * Creates a client for the Ourea probabilistic weather API.
  *
  * ```kotlin
- * val ourea = EnsembleWeather()                       // anonymous, or OUREA_API_KEY
- * val pro = EnsembleWeather { apiKey = "ow_..."; units = Units.Imperial }
+ * val ourea = Client()                       // anonymous, or OUREA_API_KEY
+ * val pro = Client { apiKey = "ow_..."; units = Units.Imperial }
  * ```
  *
  * A client is cheap to keep and safe to share between coroutines; make one and reuse
  * it, so its ETag cache and connection pool are shared.
  */
-public fun EnsembleWeather(configure: EnsembleWeather.Builder.() -> Unit = {}): EnsembleWeather =
-    EnsembleWeather.Builder().apply(configure).build()
+public fun Client(configure: Client.Builder.() -> Unit = {}): Client =
+    Client.Builder().apply(configure).build()
 
 /**
  * The Ourea probabilistic weather API client. Every call is a `suspend` function, every
@@ -47,14 +47,14 @@ public fun EnsembleWeather(configure: EnsembleWeather.Builder.() -> Unit = {}): 
  * server for probabilities with [ForecastOptions.chance] and for storm totals with
  * [ForecastOptions.total]: the SDK never sums, averages or interpolates quantiles.
  *
- * Errors are [EnsembleWeatherException]s. Connection failures, 429, 502, 503 and 504
+ * Errors are [OureaException]s. Connection failures, 429, 502, 503 and 504
  * are retried ([Builder.maxRetries]); nothing else is.
  *
  * Search, catalog details and attribution are sent without the API key even when
  * the client has one, so every caller shares one edge-cache entry; set
  * [Builder.sendKeyOnOpenRoutes] to attribute every request to your key.
  */
-public class EnsembleWeather private constructor(
+public class Client private constructor(
     private val config: Builder,
     private val rateLimitState: MutableStateFlow<RateLimit?>,
 ) {
@@ -88,8 +88,8 @@ public class EnsembleWeather private constructor(
      * A client with this one's settings changed by [configure], sharing its transport,
      * cache and rate-limit state. For example `ourea.config { apiKey = otherKey }`.
      */
-    public fun config(configure: Builder.() -> Unit): EnsembleWeather =
-        EnsembleWeather(
+    public fun config(configure: Builder.() -> Unit): Client =
+        Client(
             config
                 .copy()
                 .apply(configure)
@@ -100,7 +100,7 @@ public class EnsembleWeather private constructor(
         )
 
     /** The settings, with the API key redacted. */
-    override fun toString(): String = "EnsembleWeather($config)"
+    override fun toString(): String = "Client($config)"
 
     // ---- Forecasts -------------------------------------------------------------------
 
@@ -544,7 +544,7 @@ public class EnsembleWeather private constructor(
      * `https://api.oureawx.com`), metric units, 30 s per attempt, 2 retries, and the
      * in-memory ETag cache.
      */
-    @EnsembleWeatherDsl
+    @OureaDsl
     public class Builder internal constructor() {
         private var apiKeySet = false
         private var baseUrlSet = false
@@ -611,7 +611,7 @@ public class EnsembleWeather private constructor(
                 it.clock = clock
             }
 
-        internal fun build(): EnsembleWeather = EnsembleWeather(validated(), MutableStateFlow(null))
+        internal fun build(): Client = Client(validated(), MutableStateFlow(null))
 
         internal fun validated(): Builder {
             if (maxRetries < 0) throw UsageException("maxRetries must be 0 or more")

@@ -349,7 +349,7 @@ public data class RunsResponse(
     public val runs: List<RunInfo>,
     /** How many runs. */
     public val count: Int,
-    /** The cursor for older runs ([EnsembleWeather.getRuns]); `null` on the last page. */
+    /** The cursor for older runs ([Client.getRuns]); `null` on the last page. */
     @SerialName("next_cursor") public val nextCursor: String? = null,
 ) : ApiResponse {
     @Transient

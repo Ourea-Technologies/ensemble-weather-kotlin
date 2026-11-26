@@ -2,11 +2,11 @@
 // Current conditions from the nearest sensors, and the active NWS alerts, for a location.
 package examples.currentandalerts
 
-import com.oureawx.ensembleweather.kotlin.EnsembleWeather
+import com.oureawx.ensembleweather.kotlin.Client
 import com.oureawx.ensembleweather.kotlin.temperatureLabel
 
 suspend fun main() {
-    val ourea = EnsembleWeather()
+    val ourea = Client()
 
     val current = ourea.getCurrent("or/mt-hood-meadows")
     val now = current.current

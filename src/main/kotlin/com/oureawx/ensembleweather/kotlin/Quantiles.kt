@@ -103,7 +103,7 @@ public data class LocationRef(
 /** The data sources a response drew on, and the credit their licences ask for. */
 @Serializable
 public data class ResponseAttribution(
-    /** Source ids from [EnsembleWeather.getAttribution]. */
+    /** Source ids from [Client.getAttribution]. */
     public val sources: List<String>,
     /** One credit line per provider; carry it with any redistributed output. */
     public val credit: String,

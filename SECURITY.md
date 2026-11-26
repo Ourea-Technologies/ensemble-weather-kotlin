@@ -8,7 +8,7 @@ for this repository. **Do not open a public issue**, pull request or discussion
 for a security problem.
 
 Include what you found, how to reproduce it, and the SDK version
-(`EnsembleWeather.SDK_VERSION`). We aim to acknowledge a report within three
+(`Client.SDK_VERSION`). We aim to acknowledge a report within three
 working days and will keep you informed until it is fixed and released. We credit
 reporters who want it.
 

@@ -43,12 +43,12 @@ class ClientTest {
     }
 
     private fun TestScope.client(
-        configure: EnsembleWeather.Builder.() -> Unit = {},
+        configure: Client.Builder.() -> Unit = {},
         respond: suspend (HttpRequest, Int) -> HttpResponse,
-    ): Pair<EnsembleWeather, Recorder> {
+    ): Pair<Client, Recorder> {
         val recorder = Recorder(this, respond)
         val client =
-            EnsembleWeather {
+            Client {
                 environment = { null }
                 random = { 1.0 }
                 clock = { testScheduler.currentTime }
@@ -441,7 +441,7 @@ class ClientTest {
 
     @Test
     fun `freezing level parses every kind and keeps an unknown one`() {
-        fun parse(json: String) = EnsembleWeather.JSON.decodeFromString(FreezingLevel.serializer(), json)
+        fun parse(json: String) = Client.JSON.decodeFromString(FreezingLevel.serializer(), json)
         assertEquals(FreezingLevel.BelowSurface, parse("""{"kind":"below_surface"}"""))
         assertEquals(
             FreezingLevel.Height(1200.0, true),
@@ -450,7 +450,7 @@ class ClientTest {
         assertEquals(FreezingLevel.AboveProfile(5000.0), parse("""{"kind":"above_profile","top":5000}"""))
         val unknown = parse("""{"kind":"inverted","x":1}""")
         assertTrue(unknown is FreezingLevel.Unknown && unknown.kind == "inverted")
-        val again = EnsembleWeather.JSON.encodeToString(FreezingLevel.serializer(), FreezingLevel.Height(1.0, false))
+        val again = Client.JSON.encodeToString(FreezingLevel.serializer(), FreezingLevel.Height(1.0, false))
         assertEquals(FreezingLevel.Height(1.0, false), parse(again))
     }
 

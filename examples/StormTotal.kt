@@ -4,14 +4,14 @@
 // hourly p90s is far above the p90 of the total.
 package examples.stormtotal
 
-import com.oureawx.ensembleweather.kotlin.EnsembleWeather
+import com.oureawx.ensembleweather.kotlin.Client
 import com.oureawx.ensembleweather.kotlin.Variable
 import com.oureawx.ensembleweather.kotlin.amountLabel
 import com.oureawx.ensembleweather.kotlin.totalWithin
 import kotlin.time.Duration.Companion.hours
 
 suspend fun main() {
-    val ourea = EnsembleWeather()
+    val ourea = Client()
     val forecast =
         ourea.getForecast("or/mt-hood-meadows") {
             total(

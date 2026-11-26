@@ -51,7 +51,7 @@ class SpecDriftTest {
     // ---- Operations -----------------------------------------------------------------------
 
     /** Every in-scope operation, called with every option it has. */
-    private val calls: Map<String, suspend (EnsembleWeather) -> Unit> =
+    private val calls: Map<String, suspend (Client) -> Unit> =
         mapOf(
             "getLocationForecast" to { c ->
                 c.getForecast("or/x") {
@@ -125,7 +125,7 @@ class SpecDriftTest {
                 runTest {
                     val sent = mutableListOf<HttpRequest>()
                     val client =
-                        EnsembleWeather {
+                        Client {
                             apiKey = "ow_k"
                             units = Units.Imperial
                             transport =
@@ -294,8 +294,8 @@ class SpecDriftTest {
         }
         assertTrue(violations.isEmpty(), "$label breaks its own schema:\n${violations.joinToString("\n")}")
         val serializer = ROOTS.getValue(schemaName) as KSerializer<Any>
-        val decoded = EnsembleWeather.JSON.decodeFromJsonElement(serializer, example)
-        val encoded = EnsembleWeather.JSON.encodeToJsonElement(serializer, decoded)
+        val decoded = Client.JSON.decodeFromJsonElement(serializer, example)
+        val encoded = Client.JSON.encodeToJsonElement(serializer, decoded)
         assertJsonEquivalent(example, encoded, label)
     }
 
@@ -307,7 +307,7 @@ class SpecDriftTest {
         example: JsonObject,
     ) = runTest {
         val client =
-            EnsembleWeather {
+            Client {
                 maxRetries = 0
                 transport = HttpTransport { HttpResponse(status, emptyMap(), example.toString().toByteArray()) }
             }

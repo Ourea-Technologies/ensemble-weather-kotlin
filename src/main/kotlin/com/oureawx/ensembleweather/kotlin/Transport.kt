@@ -31,7 +31,7 @@ import java.io.InputStream
  *     }
  * }
  *
- * val ourea = EnsembleWeather {
+ * val ourea = Client {
  *     transport = OkHttpTransport(OkHttpClient.Builder().followRedirects(false).build())
  * }
  * ```
