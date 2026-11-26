@@ -9,6 +9,20 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 buildscript {
     // The plugin classpath is locked too (buildscript-gradle.lockfile).
     dependencyLocking { lockAllConfigurations() }
+    // The plugins' own dependencies get the same security floors as the tools' (see securityFloors below).
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            val floor =
+                mapOf(
+                    "com.fasterxml.jackson" to "2.18.11",
+                    "com.fasterxml.jackson.core" to "2.18.11",
+                    "com.fasterxml.jackson.dataformat" to "2.18.11",
+                    "com.fasterxml.jackson.module" to "2.18.11",
+                    "org.freemarker" to "2.3.35",
+                )[requested.group]
+            if (floor != null && requested.name != "jackson-annotations") useVersion(floor)
+        }
+    }
 }
 
 plugins {
@@ -25,6 +39,30 @@ plugins {
 
 group = "com.oureawx"
 version = providers.gradleProperty("sdkVersion").get()
+
+// Security floors (osv-scanner, security.yml) for what the build tools pull in: Dokka (Jackson, FreeMarker, jsoup),
+// ktlint and SpotBugs (Logback), and the signing plugin (Bouncy Castle). None of them is on the published
+// artifact's runtime classpath (checkDependencies holds that to the two kotlinx libraries); jackson-annotations
+// follows databind's own version.
+val securityFloors =
+    mapOf(
+        "com.fasterxml.jackson" to "2.18.11",
+        "com.fasterxml.jackson.core" to "2.18.11",
+        "com.fasterxml.jackson.dataformat" to "2.18.11",
+        "com.fasterxml.jackson.module" to "2.18.11",
+        "ch.qos.logback" to "1.5.34",
+        "org.bouncycastle" to "1.85",
+        "org.freemarker" to "2.3.35",
+        "org.jsoup" to "1.23.2",
+    )
+allprojects {
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            val floor = securityFloors[requested.group]
+            if (floor != null && requested.name != "jackson-annotations") useVersion(floor)
+        }
+    }
+}
 
 // Every configuration resolves from gradle.lockfile; `./gradlew resolveAndLockAll --write-locks` refreshes it.
 dependencyLocking {

@@ -35,8 +35,7 @@ import kotlin.time.Duration.Companion.seconds
  * A client is cheap to keep and safe to share between coroutines; make one and reuse
  * it, so its ETag cache and connection pool are shared.
  */
-public fun Client(configure: Client.Builder.() -> Unit = {}): Client =
-    Client.Builder().apply(configure).build()
+public fun Client(configure: Client.Builder.() -> Unit = {}): Client = Client.Builder().apply(configure).build()
 
 /**
  * The Ourea probabilistic weather API client. Every call is a `suspend` function, every
