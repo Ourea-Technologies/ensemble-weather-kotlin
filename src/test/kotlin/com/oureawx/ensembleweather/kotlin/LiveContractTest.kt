@@ -34,7 +34,7 @@ class LiveContractTest {
             assertEquals(listOf(Variable.Snowfall, Variable.Temperature), forecast.probabilities?.map { it.variable })
             assertEquals(1, forecast.windowTotals?.size)
             assertTrue(
-                forecast.forecast.timeseries
+                forecast.series.timeseries
                     .orEmpty()
                     .isNotEmpty(),
             )
@@ -55,5 +55,33 @@ class LiveContractTest {
             )
             assertTrue(ourea.getAttribution().providers.isNotEmpty())
             assertNotNull(ourea.getCurrent("or/mt-hood-meadows").location)
+        }
+
+    @Test
+    fun `the 0_1_0 routes answer`() =
+        runBlocking<Unit> {
+            val plume = ourea.getForecast("or/mt-hood-meadows") { members = Members.Plume }
+            assertNotNull(plume.series.plume)
+            val ranked = ourea.explore(ExploreMetric.Snow5d) { limit = 2 }
+            assertTrue(ranked.items.size <= 2)
+            assertEquals(3, ourea.exploreItems(ExploreMetric.BaseDepth) { limit = 2 }.take(3).toList().size)
+            val sorted = ourea.searchLocations("hood") { sort = ExploreMetric.Snow5d }
+            assertTrue(sorted.items.isNotEmpty())
+            assertTrue(ourea.getComposition().models.isNotEmpty())
+            assertEquals("or", ourea.getSeason("or/mt-hood-meadows").location.state)
+            assertTrue(ourea.getSnowpack("or/mt-hood-meadows").beta)
+            assertTrue(ourea.getSnowpackPlume("or/mt-hood-meadows").beta)
+            assertEquals("FeatureCollection", ourea.getAlertOutlines().type)
+            assertTrue(ourea.getAvalancheZones().features.isNotEmpty())
+            assertNotNull(ourea.getCurrent("wa/snoqualmie-pass-i-90").pass)
+            // Plus or Pro: a keyed Plus/Pro caller gets the grids, anyone else PLUS_REQUIRED.
+            try {
+                assertTrue(ourea.getSnowTrend("or/mt-hood-meadows").grids.isNotEmpty())
+            } catch (e: PermissionException) {
+                assertEquals("PLUS_REQUIRED", e.code)
+            }
+            val anonymous = ourea.config { apiKey = null }
+            val refused = runCatching { anonymous.getSnowTrend("or/mt-hood-meadows") }.exceptionOrNull()
+            assertEquals("PLUS_REQUIRED", (refused as? PermissionException)?.code)
         }
 }

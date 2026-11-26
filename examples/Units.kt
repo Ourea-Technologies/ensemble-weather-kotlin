@@ -14,7 +14,7 @@ suspend fun main() {
     for (system in listOf(Units.Metric, Units.Imperial)) {
         val forecast = ourea.getForecast("or/mt-hood-meadows") { units = system }
         val hour =
-            forecast.forecast.timeseries
+            forecast.series.timeseries
                 .orEmpty()
                 .firstOrNull() ?: continue
         val e = hour.ensemble

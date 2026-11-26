@@ -381,7 +381,7 @@ class ClientTest {
         }
 
     @Test
-    fun `the station list repeats capability and follows the cursor`() =
+    fun `the station list sends capability as one comma list and follows the cursor`() =
         runTest {
             val pages =
                 listOf(
@@ -391,8 +391,59 @@ class ClientTest {
             val (client, recorder) = client { _, n -> ok(pages[n - 1].toByteArray()) }
             val slugs = client.catalogStations { capability = listOf("swe", "air_temp") }.toList().map { it.slug }
             assertEquals(listOf("a", "b"), slugs)
-            assertEquals("capability=swe&capability=air_temp", URI(recorder.requests[0].url).rawQuery)
-            assertEquals("capability=swe&capability=air_temp&cursor=c2", URI(recorder.requests[1].url).rawQuery)
+            assertEquals("capability=air_temp,swe", URI(recorder.requests[0].url).rawQuery)
+            assertEquals("capability=air_temp,swe&cursor=c2", URI(recorder.requests[1].url).rawQuery)
+        }
+
+    @Test
+    fun `near and bbox are checked numbers sent with literal commas`() =
+        runTest {
+            val (client, recorder) = client { _, _ -> ok("""{"items":[],"count":0}""".toByteArray()) }
+            client.searchLocations("hood") { near = LatLon(45.0, -121.5) }
+            assertEquals("near=45,-121.5&q=hood", URI(recorder.requests.single().url).rawQuery)
+            assertFailsWith<UsageException> { client.searchLocations("hood") { near = LatLon(91.0, 0.0) } }
+            assertFailsWith<UsageException> { client.explore(ExploreMetric.Snow5d) { near = LatLon(0.0, -181.0) } }
+            assertFailsWith<UsageException> { client.explore(ExploreMetric.Snow5d) { near = LatLon(Double.NaN, 0.0) } }
+            assertFailsWith<UsageException> {
+                client.getAlertOutlines { bbox = BoundingBox(west = -116.0, south = 41.0, east = -125.0, north = 49.0) }
+            }
+            assertFailsWith<UsageException> {
+                client.getAlertOutlines { bbox = BoundingBox(west = -125.0, south = 49.0, east = -116.0, north = 41.0) }
+            }
+            assertEquals(1, recorder.requests.size, "a refused argument sends nothing")
+        }
+
+    @Test
+    fun `members takes off, hourly or plume and omits the default`() =
+        runTest {
+            val (client, recorder) = client { _, _ -> ok(forecastBody) }
+            client.getForecast("or/x") { members = Members.Off }
+            client.getForecast("or/x") { members = Members.Hourly }
+            client.getForecast("or/x") { members = Members.Plume }
+            assertEquals(listOf(null, "members=true", "members=plume"), recorder.requests.map { URI(it.url).rawQuery })
+        }
+
+    @Test
+    fun `search and explore lowercase a two-letter state and omit their defaults`() =
+        runTest {
+            val (client, recorder) = client { _, _ -> ok("""{"items":[],"count":0}""".toByteArray()) }
+            client.searchLocations("hood") {
+                state = "OR"
+                order = SortOrder.Descending
+                radiusKm = 100.0
+                units = Units.Metric
+            }
+            assertEquals("q=hood&state=or", URI(recorder.requests.single().url).rawQuery)
+        }
+
+    @Test
+    fun `PLUS_REQUIRED is a permission error`() =
+        runTest {
+            val body = """{"error":"PLUS_REQUIRED","message":"The snow trend needs Plus or Pro."}"""
+            val (client, _) =
+                client({ maxRetries = 0 }) { _, _ -> HttpResponse(403, emptyMap(), body.toByteArray()) }
+            val error = assertFailsWith<PermissionException> { client.getSnowTrend("or/mt-hood-meadows") }
+            assertEquals("PLUS_REQUIRED", error.code)
         }
 
     private fun station(slug: String) =

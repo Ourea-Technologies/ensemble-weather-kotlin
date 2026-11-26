@@ -21,7 +21,7 @@ suspend fun main() {
             "Forecast at ${point.lat}, ${point.lon} (${point.elevation} ${forecast.units.lengthLabel}, from ${point.elevationSource})",
         )
     }
-    for (hour in forecast.forecast.timeseries
+    for (hour in forecast.series.timeseries
         .orEmpty()
         .take(6)) {
         val t = hour.ensemble.temperature

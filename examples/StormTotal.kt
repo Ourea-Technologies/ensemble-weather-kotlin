@@ -24,7 +24,7 @@ suspend fun main() {
     val unit = forecast.units.amountLabel
     for (total in forecast.windowTotals.orEmpty()) {
         val q = total.quantiles
-        val window = "hours ${total.windowStartHours}-${total.windowEndHours}"
+        val window = "hours ${total.startHours}-${total.endHours}"
         if (q == null) {
             println("${total.variable} over $window: not covered by this run")
         } else {

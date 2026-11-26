@@ -66,12 +66,12 @@ class ReadmeTest {
                 }
             for (p in f.probabilities.orEmpty()) {
                 println(
-                    "${p.variable} ${p.op} ${p.threshold} h${p.windowStartHours}-${p.windowEndHours}: ${p.probability}",
+                    "${p.variable} ${p.op} ${p.threshold} h${p.windowStartHours}-${p.windowEndHours}: ${p.value}",
                 )
             }
             val storm = f.windowTotals?.first()?.quantiles
             val spread =
-                f.forecast.timeseries
+                f.series.timeseries
                     ?.first()
                     ?.ensemble
                     ?.temperature

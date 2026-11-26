@@ -44,7 +44,7 @@ jobs:
         run: ./gradlew dokkaGenerate assemble
 
   test:
-    name: Unit tests and the 43 vectors (JDK ${{ matrix.jdk }})
+    name: Unit tests and the 58 vectors (JDK ${{ matrix.jdk }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

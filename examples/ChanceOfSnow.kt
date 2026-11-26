@@ -28,7 +28,7 @@ suspend fun main() {
         }
 
     for (p in forecast.probabilities.orEmpty()) {
-        val chance = p.probability?.let { "${(it * 100).toInt()}%" } ?: "not available yet"
+        val chance = p.value?.let { "${(it * 100).toInt()}%" } ?: "not available yet"
         val window = "hours ${p.windowStartHours}-${p.windowEndHours} (${p.from} to ${p.to})"
         println("${p.variable} ${p.op} ${p.threshold} [${p.aggregation}] over $window: $chance, ${p.members} members")
     }
