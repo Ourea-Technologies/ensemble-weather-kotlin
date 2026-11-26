@@ -22,6 +22,7 @@ import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import java.io.File
+import java.lang.reflect.Modifier
 import java.net.URI
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -527,10 +528,14 @@ class VectorsTest {
     ): Any? {
         val name = KOTLIN_NAMES[segment] ?: segment.replace(Regex("_([a-z0-9])")) { it.groupValues[1].uppercase() }
         val getter = "get" + name.replaceFirstChar { it.uppercase() }
-        // A value-class property's getter is mangled (`getUnits-<hash>`) and returns the underlying string.
+        // A value-class property's getter is mangled (`getUnits-<hash>`) and returns the underlying string; the
+        // static `get...$annotations` stubs of annotated properties are not getters.
         val method =
             node.javaClass.methods.firstOrNull {
-                it.parameterCount == 0 && (it.name == getter || it.name == name || it.name.startsWith("$getter-"))
+                it.parameterCount == 0 &&
+                    !Modifier.isStatic(it.modifiers) &&
+                    '$' !in it.name &&
+                    (it.name == getter || it.name == name || it.name.startsWith("$getter-"))
             } ?: fail("${node.javaClass.simpleName} has no property $name (path segment $segment)")
         return method.invoke(node)
     }
